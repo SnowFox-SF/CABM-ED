@@ -470,6 +470,9 @@ func _on_story_needs_reload():
 	# 刷新故事列表和树状图显示
 	_refresh_story_list()
 	if current_story_id and stories_data.has(current_story_id):
+		# 重置树状图视图（缩放和位置）
+		tree_view.reset_view()
+
 		_render_story_tree()
 
 		# 如果之前有选中的节点，尝试重新选中它
