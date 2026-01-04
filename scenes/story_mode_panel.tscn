@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://oumaobjth63w" path="res://scripts/story/story_mode_panel.gd" id="1"]
 [ext_resource type="Texture2D" uid="uid://ciav2n21hexqb" path="res://assets/images/story_background.png" id="2"]
+[ext_resource type="PackedScene" uid="uid://b1e7p3w1f3t5h" path="res://scenes/universal_tree_view.tscn" id="3"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pkgs8"]
 bg_color = Color(0, 0, 0, 0)
@@ -199,3 +200,11 @@ text = "从此开始"
 clip_contents = true
 layout_mode = 2
 size_flags_vertical = 3
+
+[node name="TreeView" parent="Panel/VBoxContainer/HSplitContainer/TreeViewPanel/VBoxContainer/TreeViewContainer" instance=ExtResource("3")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
