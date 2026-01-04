@@ -148,8 +148,10 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_dialog_panel")
 [node name="LoadPreviousButton" type="Button" parent="Panel/HBoxContainer/RightPanel/DialogPanel"]
 custom_minimum_size = Vector2(40, 40)
 layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+offset_left = 289.0
+offset_top = -15.0
+offset_right = 329.0
+offset_bottom = 25.0
 text = "↑"
 
 [node name="ScrollContainer" type="ScrollContainer" parent="Panel/HBoxContainer/RightPanel/DialogPanel"]
@@ -161,6 +163,8 @@ offset_left = 10.0
 offset_top = 10.0
 offset_right = -10.0
 offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="MessageContainer" type="VBoxContainer" parent="Panel/HBoxContainer/RightPanel/DialogPanel/ScrollContainer"]
 layout_mode = 2
