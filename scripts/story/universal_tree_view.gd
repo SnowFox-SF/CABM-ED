@@ -48,42 +48,63 @@ func _input(event):
 	if not visible:
 		return
 
-	# 检查是否在树状图区域内（用于鼠标事件）
+	# 检查输入保护（用于故事对话页面）
+	if input_protected:
+		var parent_panel = get_parent()
+		while parent_panel and not (parent_panel is Window):
+			if parent_panel is Control and not parent_panel.visible:
+				return
+			parent_panel = parent_panel.get_parent()
+
+	# 检查是否在树状图区域内（用于鼠标和触摸事件）
 	var tree_view_rect = Rect2(tree_view_container.global_position, tree_view_container.size)
 	var mouse_pos = get_viewport().get_mouse_position()
 
-	# 处理触摸事件（移动设备）
-	if event is InputEventScreenTouch:
-		_handle_touch_event(event)
-		return
-	elif event is InputEventScreenDrag:
-		_handle_drag_event(event)
+	# 处理触摸事件（移动设备）- 只有在区域内才处理
+	if event is InputEventScreenTouch or event is InputEventScreenDrag:
+		if tree_view_rect.has_point(event.position):
+			# 触摸点在区域内，正常处理
+			if event is InputEventScreenTouch:
+				_handle_touch_event(event)
+			else:
+				_handle_drag_event(event)
+		else:
+			# 触摸点不在区域内
+			if event is InputEventScreenTouch and event.pressed:
+				# 如果是按下事件且在区域外，忽略
+				return
+			else:
+				# 如果是拖拽事件或释放事件在区域外，重置触摸状态
+				touch_positions.clear()
+				touch_zoom_active = false
+				initial_touch_distance = 0.0
+				initial_zoom_level = 1.0
 		return
 
 	# 处理鼠标事件
-	if not tree_view_rect.has_point(mouse_pos):
-		return
-
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			if event.pressed:
-				# 开始可能的拖拽
-				is_dragging = false
-				drag_start_pos = get_viewport().get_mouse_position()
-				last_mouse_pos = drag_start_pos
+				# 只有在区域内按下时才开始可能的拖拽
+				if tree_view_rect.has_point(mouse_pos):
+					is_dragging = false
+					drag_start_pos = get_viewport().get_mouse_position()
+					last_mouse_pos = drag_start_pos
 			else:
-				# 结束拖拽
+				# 结束拖拽（无论鼠标在哪里都可以释放）
 				is_dragging = false
 		elif event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			_zoom_tree_view(0.1, mouse_pos)
+			if tree_view_rect.has_point(mouse_pos):
+				_zoom_tree_view(0.1, mouse_pos)
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			_zoom_tree_view(-0.1, mouse_pos)
+			if tree_view_rect.has_point(mouse_pos):
+				_zoom_tree_view(-0.1, mouse_pos)
 
 	elif event is InputEventMouseMotion:
-		if event.button_mask & MOUSE_BUTTON_LEFT:
+		if event.button_mask & MOUSE_BUTTON_LEFT and drag_start_pos != Vector2.ZERO:
 			var current_mouse_pos = get_viewport().get_mouse_position()
 			if not is_dragging:
-				# 检查是否超过拖拽阈值
+				# 检查是否超过拖拽阈值，开始拖拽
 				var distance = (current_mouse_pos - drag_start_pos).length()
 				if distance > drag_threshold:
 					is_dragging = true
@@ -435,6 +456,7 @@ func _apply_transform():
 
 func _handle_touch_event(event: InputEventScreenTouch):
 	"""处理触摸事件"""
+	# 注意：区域检查已在 _input 中完成，这里直接处理
 	var touch_index = event.index
 
 	if event.pressed:
@@ -457,6 +479,7 @@ func _handle_touch_event(event: InputEventScreenTouch):
 
 func _handle_drag_event(event: InputEventScreenDrag):
 	"""处理拖拽事件"""
+	# 注意：区域检查已在 _input 中完成，这里直接处理
 	var touch_index = event.index
 
 	# 更新触摸点位置
@@ -546,3 +569,9 @@ func set_selection_disabled(disabled: bool):
 	selection_disabled = disabled
 	if disabled and not selected_node_id.is_empty():
 		_clear_node_selection()
+
+var input_protected: bool = false
+
+func set_input_protected(protected: bool):
+	"""设置是否启用输入保护（检查父级面板可见性）"""
+	input_protected = protected
