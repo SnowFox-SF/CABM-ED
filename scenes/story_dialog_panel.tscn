@@ -106,6 +106,8 @@ offset_left = 15.0
 offset_top = 10.0
 offset_right = -15.0
 offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="StoryInfoLabel" type="TextEdit" parent="Panel/HBoxContainer/LeftPanel/InfoBar/InfoHBox"]
 layout_mode = 2
@@ -143,8 +145,16 @@ layout_mode = 2
 size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_dialog_panel")
 
-[node name="ScrollContainer" type="ScrollContainer" parent="Panel/HBoxContainer/RightPanel/DialogPanel"]
+[node name="LoadPreviousButton" type="Button" parent="Panel/HBoxContainer/RightPanel/DialogPanel"]
+custom_minimum_size = Vector2(40, 40)
 layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+text = "↑"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="Panel/HBoxContainer/RightPanel/DialogPanel"]
+layout_mode = 1
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 10.0

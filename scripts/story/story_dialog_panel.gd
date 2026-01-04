@@ -14,6 +14,7 @@ signal story_needs_reload
 @onready var message_input: TextEdit = $Panel/HBoxContainer/RightPanel/MessageInputPanel/HBoxContainer/MessageInput
 @onready var send_button: Button = $Panel/HBoxContainer/RightPanel/MessageInputPanel/HBoxContainer/SendButton
 @onready var toggle_size_button: Button = $Panel/HBoxContainer/RightPanel/MessageInputPanel/HBoxContainer/ToggleSizeButton
+@onready var load_previous_button: Button = $Panel/HBoxContainer/RightPanel/DialogPanel/LoadPreviousButton
 
 # 故事数据
 var current_story_id: String = ""
@@ -29,6 +30,9 @@ var messages: Array = []
 
 # AI相关
 var story_ai: StoryAI = null
+
+# 上下文加载器
+var context_loader: Node = null
 
 # 保存管理器
 var save_manager: Node = null
@@ -53,10 +57,16 @@ func _ready():
 	message_input.text_changed.connect(_on_message_input_changed)
 	message_input.gui_input.connect(_on_message_input_gui_input)
 	toggle_size_button.pressed.connect(_on_toggle_size_pressed)
+	load_previous_button.pressed.connect(_on_load_previous_button_pressed)
 
 	# 连接树状图信号
 	tree_view.node_selected.connect(_on_tree_node_selected)
 	tree_view.node_deselected.connect(_on_tree_node_deselected)
+
+	# 连接滚动容器信号用于翻页检测
+	var scroll_container = message_container.get_parent() as ScrollContainer
+	if scroll_container:
+		scroll_container.get_v_scroll_bar().changed.connect(_on_scroll_changed)
 
 	# 初始化StoryAI
 	_initialize_story_ai()
@@ -213,10 +223,26 @@ func _initialize_dialog():
 	# 初始化存档点按钮脉冲效果
 	_update_checkpoint_button_pulse()
 
-	# 添加初始系统消息
-	_add_system_message("故事开始于节点：" + current_node_id)
+	# 初始化上下文加载器状态
+	if context_loader:
+		context_loader.clear_cache()
+		# 初始化滚动位置
+		var scroll_container = message_container.get_parent() as ScrollContainer
+		if scroll_container:
+			context_loader.last_scroll_position = scroll_container.scroll_vertical
 
-	# TODO: 加载历史对话记录（如果有的话）
+		var system_messages = context_loader.initialize_story_context()
+
+		# 显示系统消息
+		for system_msg in system_messages:
+			_add_system_message(system_msg)
+
+	# 隐藏加载按钮（初始状态）
+	load_previous_button.visible = false
+
+	# 如果没有上下文加载器，则使用默认的系统消息
+	if not context_loader:
+		_add_system_message("故事开始于节点：" + current_node_id)
 
 func _clear_messages():
 	"""清空消息"""
@@ -335,6 +361,139 @@ func _smooth_scroll_to_bottom():
 
 	var target_scroll = scroll_container.get_v_scroll_bar().max_value
 	tween.tween_property(scroll_container, "scroll_vertical", target_scroll, 0.3)
+
+func _is_near_top() -> bool:
+	"""检查是否接近顶部"""
+	var scroll_container = message_container.get_parent() as ScrollContainer
+	if not scroll_container:
+		return false
+
+	var v_scroll_bar = scroll_container.get_v_scroll_bar()
+	var current_scroll = scroll_container.scroll_vertical
+	var page_size = v_scroll_bar.page
+
+	# 如果滚动位置小于等于页面大小的0.2倍，认为接近顶部
+	return current_scroll <= (page_size * 0.2)
+
+func _check_scroll_for_pagination():
+	"""检查滚动位置，控制加载上一章节按钮的显示"""
+	var scroll_container = message_container.get_parent() as ScrollContainer
+	if not scroll_container or not context_loader:
+		load_previous_button.visible = false
+		return
+
+	var current_scroll = scroll_container.scroll_vertical
+
+	# 当滚动到顶部附近时，检查是否可以加载上一章节
+	if _is_near_top():
+		var can_load_previous = context_loader.can_load_previous_context(current_node_id)
+		load_previous_button.visible = can_load_previous
+	else:
+		load_previous_button.visible = false
+
+	# 更新上次滚动位置
+	context_loader.last_scroll_position = current_scroll
+
+func _add_context_messages_at_top(context_messages: Array):
+	"""在消息容器顶部添加上下文消息
+
+	Args:
+		context_messages: 上下文消息数组
+	"""
+	if context_messages.is_empty():
+		return
+
+	# 记录当前滚动位置
+	var scroll_container = message_container.get_parent() as ScrollContainer
+	var current_scroll = scroll_container.scroll_vertical if scroll_container else 0
+
+	# 在顶部添加消息
+	for msg in context_messages:
+		var msg_type = msg.get("type", "")
+		var msg_text = msg.get("text", "")
+
+		if msg_type == "system":
+			_add_system_message_at_top(msg_text)
+		elif msg_type == "user":
+			_add_user_message_at_top(msg_text)
+		elif msg_type == "ai":
+			_add_ai_message_at_top(msg_text)
+
+	# 恢复滚动位置（保持用户视角不变）
+	call_deferred("_restore_scroll_position", current_scroll)
+
+func _add_system_message_at_top(text: String):
+	"""在顶部添加系统消息"""
+	var _should_scroll = false  # 顶部添加不需要自动滚动
+
+	var message_item = _create_message_item(text, "system")
+	message_container.add_child(message_item)
+	message_container.move_child(message_item, 0)  # 移动到顶部
+	messages.insert(0, {"type": "system", "text": text})  # 插入到消息数组开头
+
+	# 调整气泡大小
+	call_deferred("_adjust_bubble_size", message_item)
+
+func _add_user_message_at_top(text: String):
+	"""在顶部添加用户消息"""
+	var _should_scroll = false  # 顶部添加不需要自动滚动
+
+	var message_item = _create_message_item(text, "user")
+	message_container.add_child(message_item)
+	message_container.move_child(message_item, 0)  # 移动到顶部
+	messages.insert(0, {"type": "user", "text": text})  # 插入到消息数组开头
+
+	# 调整气泡大小
+	call_deferred("_adjust_bubble_size", message_item)
+
+func _add_ai_message_at_top(text: String):
+	"""在顶部添加AI消息"""
+	var _should_scroll = false  # 顶部添加不需要自动滚动
+
+	var message_item = _create_message_item(text, "ai")
+	message_container.add_child(message_item)
+	message_container.move_child(message_item, 0)  # 移动到顶部
+	messages.insert(0, {"type": "ai", "text": text})  # 插入到消息数组开头
+
+	# 调整气泡大小
+	call_deferred("_adjust_bubble_size", message_item)
+
+func _restore_scroll_position(previous_scroll: float):
+	"""恢复滚动位置"""
+	var scroll_container = message_container.get_parent() as ScrollContainer
+	if not scroll_container:
+		return
+
+	# 计算新的滚动位置（加上添加的消息高度）
+	var added_height = 0
+	for i in range(min(10, message_container.get_child_count())):  # 只计算前几个消息的高度
+		var child = message_container.get_child(i)
+		if child and child.has_method("get_minimum_size"):
+			added_height += child.get_minimum_size().y
+
+	scroll_container.scroll_vertical = previous_scroll + added_height
+
+func _on_scroll_changed():
+	"""滚动条改变时的处理"""
+	_check_scroll_for_pagination()
+
+func _on_load_previous_button_pressed():
+	"""加载上一章节按钮点击"""
+	if not context_loader:
+		return
+
+	var previous_context = context_loader.load_previous_node_context()
+	if not previous_context["messages"].is_empty():
+		# 在顶部添加上下文消息
+		_add_context_messages_at_top(previous_context["messages"])
+
+		# 更新当前节点ID到父节点（因为已经加载了上一层的上下文）
+		if not previous_context["new_current_node_id"].is_empty():
+			current_node_id = previous_context["new_current_node_id"]
+
+		# 检查是否还能继续加载
+		var can_load_more = context_loader.can_load_previous_context(current_node_id)
+		load_previous_button.visible = can_load_more
 
 func _on_create_checkpoint_pressed():
 	"""创建存档点按钮点击"""
@@ -484,6 +643,21 @@ func _on_message_input_gui_input(event: InputEvent):
 func _on_tree_node_selected(node_id: String):
 	"""树状图节点选中"""
 	print("树状图节点选中: ", node_id)
+
+	# 如果切换到不同的节点，重置上下文加载器状态
+	if node_id != current_node_id and context_loader:
+		context_loader.clear_cache()
+		# 重新初始化滚动位置
+		var scroll_container = message_container.get_parent() as ScrollContainer
+		if scroll_container:
+			context_loader.last_scroll_position = scroll_container.scroll_vertical
+
+	# 更新当前节点ID
+	current_node_id = node_id
+
+	# 隐藏加载按钮
+	load_previous_button.visible = false
+
 	# TODO: 处理节点选中逻辑，比如跳转到对应对话位置
 
 func _on_tree_node_deselected():
@@ -519,6 +693,11 @@ func _initialize_story_ai():
 	story_ai.streaming_completed.connect(_on_streaming_completed)
 	story_ai.streaming_interrupted.connect(_on_streaming_interrupted)
 	story_ai.request_error_occurred.connect(_on_request_error_occurred)
+
+	# 初始化上下文加载器
+	context_loader = preload("res://scripts/story/story_context_loader.gd").new()
+	add_child(context_loader)
+	context_loader.set_story_dialog_panel(self)
 
 func _on_ai_reply_ready(_text: String):
 	"""AI回复就绪"""
