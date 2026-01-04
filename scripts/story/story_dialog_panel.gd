@@ -4,6 +4,7 @@ extends Control
 # 显示故事对话界面，包含树状图和对话栏
 
 signal dialog_closed
+signal story_needs_reload
 
 @onready var story_info_label: TextEdit = $Panel/HBoxContainer/LeftPanel/InfoBar/InfoHBox/StoryInfoLabel
 @onready var create_checkpoint_button: Button = $Panel/HBoxContainer/LeftPanel/InfoBar/InfoHBox/CreateCheckpointButton
@@ -28,6 +29,9 @@ var messages: Array = []
 
 # AI相关
 var story_ai: StoryAI = null
+
+# 保存管理器
+var save_manager: Node = null
 
 # 流式输出相关
 var current_streaming_bubble: Control = null  # 当前正在流式输出的气泡
@@ -60,15 +64,42 @@ func _ready():
 	# 初始化输入框为单行模式
 	_set_input_mode(false)
 
+	# 初始化保存管理器
+	_initialize_save_manager()
+
 func initialize(story_id: String, node_id: String):
 	"""初始化对话面板"""
 	current_story_id = story_id
 	current_node_id = node_id
 
+	# 重置存档标记（开始新的对话会话）
+	if save_manager:
+		save_manager.reset_checkpoint_flag()
+
 	_load_story_data()
 	_setup_ui()
 	_initialize_tree_view()
 	_initialize_dialog()
+
+	# 检查当前节点是否已经有子节点，如果有则标记为已存档
+	_check_existing_checkpoints()
+
+func _check_existing_checkpoints():
+	"""检查当前节点是否已经有存档点（子节点）"""
+	if not save_manager or nodes_data.is_empty():
+		return
+
+	var current_node_data = nodes_data.get(current_node_id, {})
+	var child_nodes = current_node_data.get("child_nodes", [])
+
+	# 如果当前节点有子节点（除了临时节点"……"），说明已经创建过存档点
+	for child_id in child_nodes:
+		if nodes_data.has(child_id):
+			var child_data = nodes_data[child_id]
+			var display_text = child_data.get("display_text", "")
+			if display_text != "……":  # 排除临时节点
+				save_manager.has_saved_checkpoint = true
+				break
 
 func _load_story_data():
 	"""加载故事数据"""
@@ -195,6 +226,9 @@ func _add_system_message(text: String):
 	message_container.add_child(message_item)
 	messages.append({"type": "system", "text": text})
 
+	# 系统消息不记录到保存管理器的current_node_messages中
+	# 只记录玩家和角色的对话
+
 	# 调整气泡大小
 	call_deferred("_adjust_bubble_size", message_item)
 
@@ -210,6 +244,10 @@ func _add_user_message(text: String):
 	message_container.add_child(message_item)
 	messages.append({"type": "user", "text": text})
 
+	# 记录到保存管理器
+	if save_manager:
+		save_manager.add_current_node_message("user", text)
+
 	# 调整气泡大小
 	call_deferred("_adjust_bubble_size", message_item)
 
@@ -224,6 +262,10 @@ func _add_ai_message(text: String):
 	var message_item = _create_message_item(text, "ai")
 	message_container.add_child(message_item)
 	messages.append({"type": "ai", "text": text})
+
+	# 记录到保存管理器
+	if save_manager:
+		save_manager.add_current_node_message("ai", text)
 
 	# 调整气泡大小
 	call_deferred("_adjust_bubble_size", message_item)
@@ -287,11 +329,34 @@ func _smooth_scroll_to_bottom():
 
 func _on_create_checkpoint_pressed():
 	"""创建存档点按钮点击"""
-	print("创建存档点功能（待实现）")
-	# TODO: 实现创建存档点功能
+	if save_manager:
+		# 改变按钮状态为"正在创建..."
+		create_checkpoint_button.text = "正在创建..."
+		create_checkpoint_button.disabled = true
+
+		var success = await save_manager.create_checkpoint()
+		if success:
+			print("存档点创建成功")
+			_add_system_message("存档点创建成功")
+		else:
+			print("存档点创建失败")
+			_add_system_message("创建存档点失败")
+
+		# 恢复按钮状态
+		create_checkpoint_button.text = "创建存档点"
+		create_checkpoint_button.disabled = false
+	else:
+		print("保存管理器未初始化")
+		_add_system_message("保存管理器未初始化，无法创建存档点")
 
 func _on_back_button_pressed():
 	"""返回按钮点击"""
+	# 检查是否有存档过，如果有则发出重载信号
+	if save_manager and save_manager.has_checkpoint_saved():
+		story_needs_reload.emit()
+	else:
+		dialog_closed.emit()
+
 	hide_panel()
 
 func _on_send_message_pressed():
@@ -458,6 +523,10 @@ func _on_streaming_completed():
 		if story_ai:
 			story_ai.add_to_display_history("assistant", accumulated_streaming_text)
 
+		# 记录到AI上下文
+		if save_manager:
+			save_manager.add_ai_context_message("assistant", accumulated_streaming_text)
+
 	# 清理流式输出状态
 	current_streaming_bubble = null
 	accumulated_streaming_text = ""
@@ -480,6 +549,10 @@ func _on_streaming_interrupted(error_message: String, partial_content: String):
 		# 将部分内容加入上下文历史（虽然不完整）
 		if story_ai:
 			story_ai.add_to_display_history("assistant", partial_content)
+
+		# 记录到AI上下文
+		if save_manager:
+			save_manager.add_ai_context_message("assistant", partial_content)
 
 	# 添加错误信息到显示历史
 	if story_ai:
@@ -547,6 +620,10 @@ func _send_message_to_ai(message_text: String):
 	var user_name = _get_user_name()
 	var user_message_line = "<%s> %s" % [user_name, message_text]
 	story_ai.add_to_display_history("user", user_message_line)
+
+	# 记录到AI上下文
+	if save_manager:
+		save_manager.add_ai_context_message("user", user_message_line)
 
 	# 发送给AI
 	story_ai.request_reply(message_text, story_context)
@@ -686,3 +763,9 @@ func _remove_last_messages(count: int):
 
 	# 从消息数组中移除
 	messages.resize(start_index)
+
+func _initialize_save_manager():
+	"""初始化保存管理器"""
+	save_manager = preload("res://scripts/story/story_dialog_save_manager.gd").new()
+	add_child(save_manager)
+	save_manager.set_story_dialog_panel(self)
