@@ -50,8 +50,8 @@ func _update_style():
 		"ai":
 			# AI消息：灰色背景，左对齐
 			var style_ai = StyleBoxFlat.new()
-			style_ai.bg_color = Color(1.0, 1.0, 1.0, 0.8)  # 灰色背景
-			style_ai.border_color = Color(0.7, 0.7, 0.7, 1.0)
+			style_ai.bg_color = Color(0.98, 0.96, 0.85, 0.8)  # 浅米黄色
+			style_ai.border_color = Color(0.9, 0.8, 0.4, 1.0)  # 金色边框
 			style_ai.border_width_left = 2
 			style_ai.border_width_right = 2
 			style_ai.border_width_top = 2

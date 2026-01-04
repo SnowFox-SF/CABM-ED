@@ -151,7 +151,6 @@ func _create_new_story_node(summary_text: String) -> bool:
 	# 创建新节点数据
 	var new_node_data = {
 		"display_text": summary_text,
-		"full_text": summary_text,
 		"child_nodes": [],
 		"message": current_node_messages.duplicate()  # 保存完整对话记录
 	}
@@ -278,16 +277,13 @@ func _call_story_summary_api(user_name: String, character_name: String) -> Strin
 		"model": model,
 		"messages": messages,
 		"max_tokens": 1024,
-		"temperature": 0.3,
+		"temperature": 0.5,
 		"top_p": 0.7,
 		"enable_thinking": false,
 		"stream": false
 	}
 
 	var json_body = JSON.stringify(body)
-
-	# 记录完整请求到日志
-	_log_story_summary_request(user_name, character_name, messages, body)
 
 	var error = http_request.request(url, headers, HTTPClient.METHOD_POST, json_body)
 	if error != OK:
@@ -351,15 +347,13 @@ func _build_story_summary_context(user_name: String, character_name: String) -> 
 
 func _build_story_summary_system_prompt(context: Dictionary) -> String:
 	"""构建故事总结系统提示词"""
-	var prompt = "你是一个故事总结专家。请以第一人称视角，用简洁的语言总结这段故事对话内容。\n\n"
-	prompt += "故事背景：\n"
-	prompt += "标题：《%s》\n" % context.story_title
+	var prompt = "你是一个故事总结专家。你需要用精炼的语言总结用户输入的故事对话内容。\n"
+	prompt += "故事标题：《%s》\n" % context.story_title
 	prompt += "简介：%s\n\n" % context.story_summary
 	prompt += "上一章节：%s\n\n" % context.previous_chapter
 	prompt += "总结要求：\n"
-	prompt += "- 以第一人称视角书写\n"
 	prompt += "- 反映故事发展的主要内容\n"
-	prompt += "- 不要超过150字\n"
+	prompt += "- 不要超过50字\n"
 	prompt += "- 直接给出总结内容，不要包含多余的提示"
 
 	return prompt
@@ -379,23 +373,6 @@ func _build_story_summary_user_prompt(user_name: String, character_name: String)
 		# 注意：系统消息不包含在内
 
 	return "\n".join(conversation_lines)
-
-func _log_story_summary_request(user_name: String, character_name: String, messages: Array, request_body: Dictionary):
-	"""记录故事总结请求到日志"""
-	var log_data = {
-		"timestamp": Time.get_unix_time_from_system(),
-		"type": "story_summary_request",
-		"user_name": user_name,
-		"character_name": character_name,
-		"story_id": story_dialog_panel.get_current_story_id() if story_dialog_panel else "",
-		"current_node_id": story_dialog_panel.get_current_node_id() if story_dialog_panel else "",
-		"messages": messages,
-		"request_body": request_body,
-		"current_node_messages_count": current_node_messages.size()
-	}
-
-	# 这里可以扩展为写入文件或发送到日志系统
-	print("故事总结请求日志: ", JSON.stringify(log_data, "\t"))
 
 func _on_request_completed(_result: int, _response_code: int, _headers: PackedStringArray, _body: PackedByteArray):
 	"""处理请求完成信号"""
