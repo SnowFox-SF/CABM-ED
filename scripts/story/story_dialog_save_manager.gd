@@ -22,9 +22,14 @@ var node_id_counter: int = 0
 # 存档状态标记
 var has_saved_checkpoint: bool = false
 
+# 返回按钮状态管理
+var back_button_confirm_mode: bool = false  # 是否处于确认退出模式
+var back_button_timer: Timer = null  # 恢复按钮状态的定时器
+
 func _ready():
 	"""初始化管理器"""
 	_initialize_summary_api()
+	_initialize_back_button_timer()
 
 func _initialize_summary_api():
 	"""初始化总结API"""
@@ -41,6 +46,13 @@ func _initialize_summary_api():
 	http_request = HTTPRequest.new()
 	add_child(http_request)
 	http_request.request_completed.connect(_on_request_completed)
+
+func _initialize_back_button_timer():
+	"""初始化返回按钮定时器"""
+	back_button_timer = Timer.new()
+	back_button_timer.one_shot = true
+	back_button_timer.timeout.connect(_reset_back_button)
+	add_child(back_button_timer)
 
 func set_story_dialog_panel(panel: Control):
 	"""设置故事对话面板引用"""
@@ -92,19 +104,19 @@ func _flatten_current_node_messages() -> String:
 
 	return "\n".join(flattened)
 
-func create_checkpoint() -> bool:
+func create_checkpoint() -> Dictionary:
 	"""创建存档点"""
 	if not story_dialog_panel:
 		push_error("故事对话面板引用未设置")
-		return false
+		return {"success": false, "summary": ""}
 
 	if api_key.is_empty() or not config.has("summary_model"):
 		push_error("总结API配置不完整")
-		return false
+		return {"success": false, "summary": ""}
 
 	if current_node_messages.is_empty():
 		push_error("当前节点没有对话内容")
-		return false
+		return {"success": false, "summary": ""}
 
 	# 获取用户名和角色名
 	var user_name = story_dialog_panel._get_user_name()
@@ -115,13 +127,13 @@ func create_checkpoint() -> bool:
 
 	if summary_text.is_empty():
 		push_error("获取总结失败")
-		return false
+		return {"success": false, "summary": ""}
 
 	# 创建新节点
 	var success = _create_new_story_node(summary_text)
 	if not success:
 		push_error("创建新节点失败")
-		return false
+		return {"success": false, "summary": ""}
 
 	# 清空当前节点消息，为新节点做准备
 	clear_current_node_messages()
@@ -129,7 +141,7 @@ func create_checkpoint() -> bool:
 	# 标记已创建存档点
 	has_saved_checkpoint = true
 
-	return true
+	return {"success": true, "summary": summary_text}
 
 func _create_new_story_node(summary_text: String) -> bool:
 	"""创建新的故事节点"""
@@ -184,6 +196,9 @@ func _create_new_story_node(summary_text: String) -> bool:
 	# 更新故事数据
 	story_dialog_panel.nodes_data = nodes_data
 	story_dialog_panel.current_node_id = new_node_id
+
+	# 重新计算经历节点缓存
+	story_dialog_panel._precompute_experienced_nodes()
 
 	# 重新渲染树状图（会自动创建新的临时节点）
 	story_dialog_panel._initialize_tree_view()
@@ -370,9 +385,46 @@ func _build_story_summary_user_prompt(user_name: String, character_name: String)
 			conversation_lines.append("%s: %s" % [user_name, text])
 		elif type == "ai":
 			conversation_lines.append("%s: %s" % [character_name, text])
-		# 注意：系统消息不包含在内
 
 	return "\n".join(conversation_lines)
+
+func should_confirm_back() -> bool:
+	"""检查是否需要确认退出"""
+	return not current_node_messages.is_empty()
+
+func enter_back_confirm_mode():
+	"""进入返回确认模式"""
+	if not story_dialog_panel:
+		return
+
+	var back_button = story_dialog_panel.back_button
+	if back_button:
+		back_button.text = "有内容未存档，确认退出？"
+		back_button.modulate = Color(1.0, 0.3, 0.3)  # 红色
+		back_button_confirm_mode = true
+
+		# 启动3秒定时器恢复按钮状态
+		if back_button_timer:
+			back_button_timer.start(3.0)
+
+func _reset_back_button():
+	"""重置返回按钮状态"""
+	if not story_dialog_panel:
+		return
+
+	var back_button = story_dialog_panel.back_button
+	if back_button:
+		back_button.text = "返回"
+		back_button.modulate = Color(1.0, 1.0, 1.0)  # 白色
+		back_button_confirm_mode = false
+
+func is_back_confirm_mode() -> bool:
+	"""检查是否处于返回确认模式"""
+	return back_button_confirm_mode
+
+func should_show_checkpoint_pulse() -> bool:
+	"""检查是否应该显示存档点按钮的脉冲效果"""
+	return current_node_messages.size() >= 18
 
 func _on_request_completed(_result: int, _response_code: int, _headers: PackedStringArray, _body: PackedByteArray):
 	"""处理请求完成信号"""

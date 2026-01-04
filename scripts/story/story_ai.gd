@@ -328,7 +328,6 @@ func remove_last_user_from_display_history():
 	if not display_history.is_empty() and display_history.back().role == "user":
 		display_history.pop_back()
 
-
 func set_story_context(_story_context: Dictionary):
 	"""设置故事上下文（可用于更新提示词中的故事信息）"""
 	# 这里可以存储故事上下文，用于后续的提示词构建

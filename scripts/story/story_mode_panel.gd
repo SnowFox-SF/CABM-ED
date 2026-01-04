@@ -548,13 +548,17 @@ func _calculate_node_positions(node_id: String, nodes: Dictionary, node_position
 	# 设置节点位置
 	node_positions[node_id] = node_position
 
-	# 处理子节点
+	# 处理子节点 - 使用简单均匀分布
 	var child_nodes = node_data.get("child_nodes", [])
 	if child_nodes.size() > 0:
-		var child_y = node_position.y - (child_nodes.size() - 1) * NODE_SPACING_Y / 2.0
-		for child_id in child_nodes:
+		# 计算需要的垂直空间：每个子节点至少需要 NODE_SPACING_Y 的间距
+		var total_height = child_nodes.size() * NODE_SPACING_Y
+		var start_y = node_position.y - total_height / 2.0 + NODE_SPACING_Y / 2.0
+
+		for i in range(child_nodes.size()):
+			var child_id = child_nodes[i]
+			var child_y = start_y + i * NODE_SPACING_Y
 			_calculate_node_positions(child_id, nodes, Vector2(node_position.x + NODE_SPACING_X, child_y), depth + 1)
-			child_y += NODE_SPACING_Y
 
 func _redraw_tree():
 	"""重绘树状图"""
@@ -828,6 +832,7 @@ func _create_story_dialog_panel():
 
 	# 连接关闭信号
 	story_dialog_panel.dialog_closed.connect(_on_dialog_closed)
+	story_dialog_panel.story_needs_reload.connect(_on_story_needs_reload)
 
 	# 显示对话面板
 	story_dialog_panel.show_panel()
@@ -862,6 +867,46 @@ func _on_dialog_closed():
 	if story_dialog_panel:
 		story_dialog_panel.queue_free()
 		story_dialog_panel = null
+
+	# 重新显示故事模式面板
+	show_panel()
+
+func _on_story_needs_reload():
+	"""故事需要重载处理"""
+	# 保存当前选中的节点ID，用于重载后重新选中
+	var last_selected_node_id = selected_node_id
+
+	if story_dialog_panel:
+		story_dialog_panel.queue_free()
+		story_dialog_panel = null
+
+	# 重新加载故事数据
+	_load_stories()
+
+	# 刷新故事列表和树状图显示
+	_refresh_story_list()
+	if current_story_id and stories_data.has(current_story_id):
+		_render_story_tree()
+
+		# 如果之前有选中的节点，尝试重新选中它
+		if not last_selected_node_id.is_empty() and node_positions.has(last_selected_node_id):
+			selected_node_id = last_selected_node_id
+			start_from_button.visible = true
+
+			# 更新操作栏显示
+			if node_text_label:
+				var story_data = stories_data[current_story_id]
+				var nodes = story_data.get("nodes", {})
+				if nodes.has(last_selected_node_id):
+					var node_data = nodes[last_selected_node_id]
+					var full_text = node_data.get("full_text", node_data.get("display_text", ""))
+					node_text_label.text = full_text
+					node_text_label.visible = true
+
+			# 平滑移动到选中的节点
+			_smooth_move_to_node(last_selected_node_id)
+
+		_redraw_tree()
 
 	# 重新显示故事模式面板
 	show_panel()

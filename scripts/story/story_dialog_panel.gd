@@ -42,6 +42,9 @@ var is_multi_line_mode: bool = false  # false = 单行模式，true = 多行模�
 
 # AI响应状态
 var is_ai_responding: bool = false  # 跟踪AI是否正在响应
+
+# 脉冲动画相关
+var checkpoint_pulse_tween: Tween = null  # 存档点按钮脉冲动画
 func _ready():
 	"""初始化"""
 	create_checkpoint_button.pressed.connect(_on_create_checkpoint_pressed)
@@ -207,6 +210,9 @@ func _initialize_dialog():
 	# 延迟到下一帧，确保UI完全初始化
 	await get_tree().process_frame
 
+	# 初始化存档点按钮脉冲效果
+	_update_checkpoint_button_pulse()
+
 	# 添加初始系统消息
 	_add_system_message("故事开始于节点：" + current_node_id)
 
@@ -225,9 +231,6 @@ func _add_system_message(text: String):
 	var message_item = _create_message_item(text, "system")
 	message_container.add_child(message_item)
 	messages.append({"type": "system", "text": text})
-
-	# 系统消息不记录到保存管理器的current_node_messages中
-	# 只记录玩家和角色的对话
 
 	# 调整气泡大小
 	call_deferred("_adjust_bubble_size", message_item)
@@ -248,6 +251,9 @@ func _add_user_message(text: String):
 	if save_manager:
 		save_manager.add_current_node_message("user", text)
 
+	# 更新存档点按钮脉冲效果
+	call_deferred("_update_checkpoint_button_pulse")
+
 	# 调整气泡大小
 	call_deferred("_adjust_bubble_size", message_item)
 
@@ -266,6 +272,9 @@ func _add_ai_message(text: String):
 	# 记录到保存管理器
 	if save_manager:
 		save_manager.add_current_node_message("ai", text)
+
+	# 更新存档点按钮脉冲效果
+	call_deferred("_update_checkpoint_button_pulse")
 
 	# 调整气泡大小
 	call_deferred("_adjust_bubble_size", message_item)
@@ -334,10 +343,13 @@ func _on_create_checkpoint_pressed():
 		create_checkpoint_button.text = "正在创建..."
 		create_checkpoint_button.disabled = true
 
-		var success = await save_manager.create_checkpoint()
-		if success:
+		var result = await save_manager.create_checkpoint()
+		if result.success:
 			print("存档点创建成功")
-			_add_system_message("存档点创建成功")
+			var summary_text = result.summary
+			_add_system_message("↑\n" + summary_text)
+			# 停止脉冲动画，因为已经创建了存档点
+			_stop_checkpoint_pulse_animation()
 		else:
 			print("存档点创建失败")
 			_add_system_message("创建存档点失败")
@@ -351,10 +363,28 @@ func _on_create_checkpoint_pressed():
 
 func _on_back_button_pressed():
 	"""返回按钮点击"""
-	# 检查是否有存档过，如果有则发出重载信号
+	print("返回按钮点击 - 检查状态:")
+	print("  save_manager 存在:", save_manager != null)
+	if save_manager:
+		print("  should_confirm_back:", save_manager.should_confirm_back())
+		print("  is_back_confirm_mode:", save_manager.is_back_confirm_mode())
+		print("  has_checkpoint_saved:", save_manager.has_checkpoint_saved())
+		print("  current_node_messages.size:", save_manager.get_current_node_messages().size())
+
+	# 检查是否需要确认退出
+	if save_manager and save_manager.should_confirm_back():
+		if not save_manager.is_back_confirm_mode():
+			print("进入确认模式")
+			# 进入确认模式
+			save_manager.enter_back_confirm_mode()
+			return
+
+	# 确认退出或不需要确认，直接退出
 	if save_manager and save_manager.has_checkpoint_saved():
+		print("发出重载信号")
 		story_needs_reload.emit()
 	else:
+		print("发出关闭信号")
 		dialog_closed.emit()
 
 	hide_panel()
@@ -496,8 +526,6 @@ func _on_ai_reply_ready(_text: String):
 
 func _on_ai_text_chunk_ready(text_chunk: String):
 	"""处理文本块就绪信号，流式显示"""
-	print("显示文本块: ", text_chunk)
-
 	# 累积文本
 	accumulated_streaming_text += text_chunk
 
@@ -769,3 +797,46 @@ func _initialize_save_manager():
 	save_manager = preload("res://scripts/story/story_dialog_save_manager.gd").new()
 	add_child(save_manager)
 	save_manager.set_story_dialog_panel(self)
+
+func _update_checkpoint_button_pulse():
+	"""更新创建存档点按钮的脉冲效果"""
+	if not save_manager or not create_checkpoint_button:
+		return
+
+	if save_manager.should_show_checkpoint_pulse():
+		_start_checkpoint_pulse_animation()
+	else:
+		_stop_checkpoint_pulse_animation()
+
+func _start_checkpoint_pulse_animation():
+	"""启动存档点按钮的脉冲动画"""
+	if checkpoint_pulse_tween:
+		checkpoint_pulse_tween.kill()
+
+	checkpoint_pulse_tween = create_tween()
+	checkpoint_pulse_tween.set_loops()  # 无限循环
+
+	# 脉冲动画：荧光效果，从弱到强再回到弱
+	checkpoint_pulse_tween.tween_property(
+		create_checkpoint_button,
+		"modulate",
+		Color(2.0, 2.0, 1.5, 1.0),  # 明亮的蓝色荧光
+		0.5
+	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+	checkpoint_pulse_tween.tween_property(
+		create_checkpoint_button,
+		"modulate",
+		Color(1.0, 1.0, 1.0, 1.0),  # 回到正常颜色
+		0.5
+	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+func _stop_checkpoint_pulse_animation():
+	"""停止存档点按钮的脉冲动画"""
+	if checkpoint_pulse_tween:
+		checkpoint_pulse_tween.kill()
+		checkpoint_pulse_tween = null
+
+	# 恢复原始缩放
+	if create_checkpoint_button:
+		create_checkpoint_button.scale = Vector2(1.0, 1.0)
