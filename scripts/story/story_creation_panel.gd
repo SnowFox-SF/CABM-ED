@@ -12,10 +12,27 @@ signal creation_cancelled
 @onready var summary_input: TextEdit = $Panel/VBoxContainer/Content/SummarySection/SummaryInput
 @onready var create_button: Button = $Panel/VBoxContainer/BottomBar/CreateButton
 
+# AI生成器
+var ai_generator: Node = null
+
 func _ready():
 	"""初始化"""
+	# 初始化AI生成器
+	_initialize_ai_generator()
+
 	# 连接信号已在tscn文件中设置
 	pass
+
+func _initialize_ai_generator():
+	"""初始化AI生成器"""
+	ai_generator = preload("res://scripts/story/story_ai_generator.gd").new()
+	add_child(ai_generator)
+	ai_generator.set_story_creation_panel(self)
+
+	# 连接AI生成器信号
+	ai_generator.generation_started.connect(_on_generation_started)
+	ai_generator.generation_completed.connect(_on_generation_completed)
+	ai_generator.generation_error.connect(_on_generation_error)
 
 func show_panel():
 	"""显示面板"""
@@ -36,8 +53,19 @@ func _on_back_pressed():
 func _on_generate_pressed():
 	"""生成故事按钮点击"""
 	var keyword = keyword_input.text.strip_edges()
-	print("生成故事，关键词：", keyword)
-	# TODO: 实现生成故事逻辑
+
+	# 检查关键词是否为空
+	if keyword.is_empty():
+		print("关键词为空，将生成随机故事")
+	else:
+		print("生成故事，关键词：", keyword)
+
+	# 使用AI生成器生成故事
+	if ai_generator:
+		ai_generator.generate_story_from_keywords(keyword)
+	else:
+		print("错误：AI生成器未初始化")
+		_on_generation_error("AI生成器初始化失败")
 
 func _on_create_pressed():
 	"""创建故事按钮点击"""
@@ -129,3 +157,21 @@ func _story_id_exists(story_id: String) -> bool:
 	"""检查故事ID是否已存在"""
 	var file_path = "user://story/" + story_id + ".json"
 	return FileAccess.file_exists(file_path)
+
+# AI生成器信号处理
+
+func _on_generation_started():
+	"""AI生成开始"""
+	print("开始生成故事...")
+	# 按钮状态已在AI生成器中处理
+
+func _on_generation_completed(title: String, summary: String):
+	"""AI生成完成"""
+	print("故事生成完成")
+	print("标题：", title)
+	print("简介：", summary)
+
+func _on_generation_error(error_message: String):
+	"""AI生成错误"""
+	print("故事生成失败：", error_message)
+	# 错误信息已在AI生成器中显示到UI
