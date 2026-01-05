@@ -735,6 +735,10 @@ func _on_streaming_completed():
 		if story_ai:
 			story_ai.add_to_display_history("assistant", accumulated_streaming_text)
 
+		# 记录到保存管理器
+		if save_manager:
+			save_manager.add_current_node_message("ai", accumulated_streaming_text)
+
 		# 记录到AI上下文
 		if save_manager:
 			save_manager.add_ai_context_message("assistant", accumulated_streaming_text)
