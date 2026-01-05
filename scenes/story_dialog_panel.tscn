@@ -146,6 +146,7 @@ size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_dialog_panel")
 
 [node name="LoadPreviousButton" type="Button" parent="Panel/HBoxContainer/RightPanel/DialogPanel"]
+z_index = 1
 custom_minimum_size = Vector2(40, 40)
 layout_mode = 0
 offset_left = 289.0

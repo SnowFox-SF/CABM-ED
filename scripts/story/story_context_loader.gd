@@ -182,7 +182,7 @@ func load_previous_node_context() -> Dictionary:
 	Returns:
 		包含消息数组和新的当前节点ID的字典
 		{
-			"messages": Array,  # 消息数组，包含系统消息和对话记录
+			"messages": Array,  # 消息数组，包含对话记录
 			"new_current_node_id": String  # 新的当前节点ID
 		}
 	"""

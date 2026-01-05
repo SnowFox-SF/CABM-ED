@@ -240,10 +240,6 @@ func _initialize_dialog():
 	# 隐藏加载按钮（初始状态）
 	load_previous_button.visible = false
 
-	# 如果没有上下文加载器，则使用默认的系统消息
-	if not context_loader:
-		_add_system_message("故事开始于节点：" + current_node_id)
-
 func _clear_messages():
 	"""清空消息"""
 	messages.clear()

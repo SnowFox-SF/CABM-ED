@@ -303,7 +303,7 @@ func _on_ai_error(error_message: String):
 	
 	if error_message.contains("超时"):
 		var character_name = _get_character_name()
-		_handle_empty_msg_response(character_name + "似乎在思考什么，但没有说出来")
+		_handle_empty_msg_response(character_name + "似乎在思考什么，但没有说出来（错误：408）")
 	else:
 		typing_manager.start_stream()
 		typing_manager.add_stream_content("抱歉，我现在有点累了，稍后再聊吧...\n错误信息：" + error_message)
