@@ -212,6 +212,7 @@ func _build_story_generation_user_prompt(keywords: String) -> String:
 func _on_stream_chunk_received(data: String):
 	"""处理流式数据块"""
 	if not is_generating:
+		print("收到数据块但is_generating为false，忽略: " + data.substr(0, 100) + "...")
 		return
 
 	# 解析流式数据
@@ -221,6 +222,7 @@ func _on_stream_chunk_received(data: String):
 
 	# 累积完整响应内容
 	full_response_content += parsed_data
+	print("累积响应内容长度: ", full_response_content.length())
 
 	# 解析标题和简介
 	_parse_and_display_content(full_response_content)
@@ -232,9 +234,8 @@ func _parse_stream_data(data: String) -> String:
 		var json_str = data.substr(6).strip_edges()
 		if json_str == "[DONE]":
 			print("收到[DONE]标记，流式响应结束")
-			# 停止流式传输并触发完成处理
-			ai_http_client.stop_streaming()
-			_on_stream_completed()
+			# 直接标记生成完成，不等待_http_client的信号
+			_finalize_generation()
 			return ""
 
 		var json = JSON.new()
@@ -242,6 +243,14 @@ func _parse_stream_data(data: String) -> String:
 			var response_data = json.data
 			if response_data.has("choices") and response_data.choices.size() > 0:
 				var choice = response_data.choices[0]
+
+				# 检查是否是结束chunk（包含finish_reason）
+				if choice.has("finish_reason") and choice.finish_reason == "stop":
+					print("收到finish_reason=stop，流式响应结束")
+					_finalize_generation()
+					return ""
+
+				# 处理正常的内容delta
 				if choice.has("delta") and choice.delta.has("content"):
 					var content = choice.delta.content
 					return content
@@ -325,16 +334,22 @@ func _display_content(title: String, summary: String):
 	if story_creation_panel.summary_input:
 		story_creation_panel.summary_input.text = summary
 
-func _on_stream_completed():
-	"""流式响应完成"""
-	print("进入_on_stream_completed函数，is_generating = ", is_generating)
+func _finalize_generation():
+	"""最终化生成过程（统一处理完成逻辑）"""
+	print("进入_finalize_generation函数，is_generating = ", is_generating)
+
+	# 如果已经完成，防止重复调用
 	if not is_generating:
-		print("is_generating为false，提前返回")
+		print("is_generating为false，跳过重复的完成处理")
 		return
 
 	# 标记为已完成，防止重复调用
 	is_generating = false
 	print("设置is_generating = false")
+
+	# 停止流式传输（如果还在进行中）
+	if ai_http_client:
+		ai_http_client.stop_streaming()
 
 	# 调试：打印完整响应
 	print("=== AI生成完成 ===")
@@ -352,6 +367,11 @@ func _on_stream_completed():
 
 	# 发送完成信号
 	generation_completed.emit(current_title, current_summary)
+
+func _on_stream_completed():
+	"""流式响应完成（由HTTP客户端调用）"""
+	print("HTTP客户端报告流式响应完成，调用_finalize_generation")
+	_finalize_generation()
 
 func _on_stream_error(error_message: String):
 	"""流式响应错误"""
