@@ -554,6 +554,17 @@ func clear_selection():
 	"""外部调用：清除选中状态"""
 	_clear_node_selection()
 
+func clear_tree():
+	"""清除树状图"""
+	# 清除所有数据
+	tree_nodes.clear()
+	node_positions.clear()
+	nodes_data.clear()
+	selected_node_id = ""
+
+	# 重绘（会清空所有可视元素）
+	_redraw_tree()
+
 func reset_view():
 	"""重置视图到初始状态"""
 	zoom_level = 1.0

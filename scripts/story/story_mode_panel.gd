@@ -220,7 +220,7 @@ func _refresh_story_list():
 			var safe_title = title if title else ""
 			var safe_summary = summary if summary else ""
 			var safe_last_played = last_played if last_played else ""
-			var truncated_summary = _truncate_text(safe_summary, 40)
+			var truncated_summary = _truncate_text(safe_summary, 37)
 			button_text = "[b]%s[/b]\n%s\n[i]最后游玩: %s[/i]" % [safe_title, truncated_summary, safe_last_played]
 		rich_text.text = button_text
 
