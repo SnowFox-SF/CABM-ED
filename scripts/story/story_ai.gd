@@ -27,6 +27,9 @@ var ai_http_client: Node
 # 日志记录器
 var logger: Node
 
+# 流式状态管理
+var is_streaming: bool = false
+
 func _ready():
 	# 初始化配置加载器
 	config_loader = preload("res://scripts/ai_chat/ai_config_loader.gd").new()
@@ -180,6 +183,9 @@ func _call_ai_api_async(messages: Array, user_prompt: String):
 	ai_http_client.set_meta("messages", messages)
 	ai_http_client.set_meta("request_body", body)
 
+	# 设置流式状态
+	is_streaming = true
+
 	# 重置流式变量
 	streaming_full_reply = ""
 	streaming_buffer = ""
@@ -195,6 +201,10 @@ var streaming_full_reply: String = ""  # 完整的回复内容
 
 func _on_stream_chunk_received(chunk_text: String):
 	"""处理接收到的流式数据块"""
+	if not is_streaming:
+		print("收到数据块但is_streaming为false，忽略:", chunk_text.substr(0, 100) + "...")
+		return
+
 	streaming_buffer += chunk_text
 
 	# 处理完整的行
@@ -223,7 +233,7 @@ func _on_stream_chunk_received(chunk_text: String):
 
 			# 检查是否是结束标记
 			if data == "[DONE]":
-				# 流式响应完成
+				print("收到[DONE]标记，流式响应结束")
 				_finalize_streaming_response()
 				return
 
@@ -235,6 +245,14 @@ func _on_stream_chunk_received(chunk_text: String):
 				# 提取内容
 				if chunk_data.has("choices") and chunk_data.choices.size() > 0:
 					var choice = chunk_data.choices[0]
+
+					# 检查是否是结束chunk（包含finish_reason）
+					if choice.has("finish_reason") and choice.finish_reason == "stop":
+						print("收到finish_reason=stop，流式响应结束")
+						_finalize_streaming_response()
+						return
+
+					# 处理正常的内容delta
 					if choice.has("delta") and choice.delta.has("content"):
 						var content = choice.delta.content
 						if not content.is_empty():
@@ -243,11 +261,17 @@ func _on_stream_chunk_received(chunk_text: String):
 							text_chunk_ready.emit(content)
 
 func _on_stream_completed():
-	"""流式响应完成"""
+	"""流式响应完成（由HTTP客户端调用）"""
+	print("HTTP客户端报告流式响应完成，调用_finalize_streaming_response")
 	_finalize_streaming_response()
 
 func _on_stream_error(error_message: String):
 	"""流式响应错误"""
+	print("流式响应错误:", error_message, "is_streaming =", is_streaming)
+
+	# 重置流式状态
+	is_streaming = false
+
 	# 根据是否收到内容来决定错误处理方式
 	if streaming_full_reply.strip_edges().is_empty():
 		# 没有收到任何内容，当作请求错误处理（撤回用户输入）
@@ -258,9 +282,22 @@ func _on_stream_error(error_message: String):
 
 func _finalize_streaming_response():
 	"""完成流式响应处理"""
+	print("进入_finalize_streaming_response，is_streaming =", is_streaming)
+
+	# 防止重复调用
+	if not is_streaming:
+		print("流式响应已经完成，跳过重复处理")
+		return
+
+	# 标记为已完成
+	is_streaming = false
+
 	if ai_http_client == null:
 		request_error_occurred.emit("AI HTTP客户端未初始化")
 		return
+
+	# 停止HTTP客户端（如果还在运行）
+	ai_http_client.stop_streaming()
 
 	# 处理缓冲区中剩余的数据
 	if not streaming_buffer.is_empty():
