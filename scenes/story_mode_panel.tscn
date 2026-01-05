@@ -1,8 +1,8 @@
-[gd_scene load_steps=9 format=3 uid="uid://dtmqem8v5cr7m"]
+[gd_scene load_steps=16 format=3 uid="uid://dtmqem8v5cr7m"]
 
 [ext_resource type="Script" uid="uid://oumaobjth63w" path="res://scripts/story/story_mode_panel.gd" id="1"]
 [ext_resource type="Texture2D" uid="uid://ciav2n21hexqb" path="res://assets/images/story_background.png" id="2"]
-[ext_resource type="PackedScene" uid="uid://b1e7p3w1f3t5h" path="res://scenes/universal_tree_view.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/universal_tree_view.tscn" id="3"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pkgs8"]
 bg_color = Color(0, 0, 0, 0)
@@ -55,6 +55,39 @@ shadow_size = 3
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ay0wa"]
 bg_color = Color(0, 0, 0, 0.16470589)
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kg3em"]
+bg_color = Color(0.26835972, 0.6612928, 0.19275102, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ce253"]
+bg_color = Color(0.21489933, 0.75829023, 0.31385657, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_57v36"]
+bg_color = Color(0.21456605, 0.8545345, 0, 0.88235295)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_delete_normal"]
 bg_color = Color(0.8, 0.2, 0.2, 0.8)
 border_width_left = 1
@@ -69,20 +102,6 @@ corner_radius_bottom_left = 4
 shadow_color = Color(0, 0, 0, 0.3)
 shadow_size = 2
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_delete_hover"]
-bg_color = Color(1, 0.3, 0.3, 0.9)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(1, 0.5, 0.5, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-shadow_color = Color(0, 0, 0, 0.4)
-shadow_size = 3
-
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_delete_pressed"]
 bg_color = Color(0.6, 0.1, 0.1, 0.9)
 border_width_left = 1
@@ -96,6 +115,20 @@ corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 shadow_color = Color(0, 0, 0, 0.5)
 shadow_size = 1
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_delete_hover"]
+bg_color = Color(1, 0.3, 0.3, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 0.5, 0.5, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_color = Color(0, 0, 0, 0.4)
+shadow_size = 3
 
 [node name="StoryModePanel" type="Control"]
 layout_mode = 3
@@ -236,6 +269,12 @@ visible = false
 custom_minimum_size = Vector2(120, 30)
 layout_mode = 2
 size_flags_horizontal = 0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_kg3em")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_ce253")
+theme_override_styles/hover = SubResource("StyleBoxFlat_57v36")
 text = "从此开始"
 
 [node name="DeleteStoryButton" type="Button" parent="Panel/VBoxContainer/HSplitContainer/TreeViewPanel/VBoxContainer/OperationBar"]
@@ -244,12 +283,11 @@ custom_minimum_size = Vector2(120, 30)
 layout_mode = 2
 size_flags_horizontal = 0
 theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(0.8, 0.8, 0.8, 1)
-theme_override_font_sizes/font_size = 14
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_styles/normal = SubResource("StyleBoxFlat_delete_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_delete_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_delete_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_delete_hover")
 text = "删除故事"
 
 [node name="TreeViewContainer" type="Control" parent="Panel/VBoxContainer/HSplitContainer/TreeViewPanel/VBoxContainer"]
@@ -259,8 +297,3 @@ size_flags_vertical = 3
 
 [node name="TreeView" parent="Panel/VBoxContainer/HSplitContainer/TreeViewPanel/VBoxContainer/TreeViewContainer" instance=ExtResource("3")]
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
