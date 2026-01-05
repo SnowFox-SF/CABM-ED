@@ -45,7 +45,7 @@ func _ready():
 
 func _input(event):
 	"""处理输入事件，用于树状图的缩放和移动"""
-	if not visible:
+	if not visible or input_disabled:
 		return
 
 	# 检查输入保护（用于故事对话页面）
@@ -582,7 +582,12 @@ func set_selection_disabled(disabled: bool):
 		_clear_node_selection()
 
 var input_protected: bool = false
+var input_disabled: bool = false  # 完全禁用输入的标志
 
 func set_input_protected(protected: bool):
 	"""设置是否启用输入保护（检查父级面板可见性）"""
 	input_protected = protected
+
+func set_input_disabled(disabled: bool):
+	"""设置是否完全禁用输入（用于对话页面打开时）"""
+	input_disabled = disabled

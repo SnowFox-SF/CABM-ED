@@ -439,6 +439,9 @@ func _create_story_dialog_panel():
 	story_dialog_panel.dialog_closed.connect(_on_dialog_closed)
 	story_dialog_panel.story_needs_reload.connect(_on_story_needs_reload)
 
+	# 禁用主页面树状图的输入，防止在对话页面打开期间误操作
+	tree_view.set_input_disabled(true)
+
 	# 显示对话面板
 	story_dialog_panel.show_panel()
 
@@ -473,6 +476,9 @@ func _on_dialog_closed():
 		story_dialog_panel.queue_free()
 		story_dialog_panel = null
 
+	# 重新启用主页面树状图的输入
+	tree_view.set_input_disabled(false)
+
 	# 重新显示故事模式面板
 	show_panel()
 
@@ -484,6 +490,9 @@ func _on_story_needs_reload():
 	if story_dialog_panel:
 		story_dialog_panel.queue_free()
 		story_dialog_panel = null
+
+	# 重新启用主页面树状图的输入
+	tree_view.set_input_disabled(false)
 
 	# 重新加载故事数据
 	_load_stories()
