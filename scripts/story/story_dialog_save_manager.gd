@@ -234,6 +234,18 @@ func _save_story_data_to_disk() -> bool:
 		push_error("故事数据为空")
 		return false
 
+	# 更新最后游玩时间
+	var current_time = Time.get_datetime_dict_from_system()
+	var last_played_at = "%04d-%02d-%02dT%02d:%02d:%02d" % [
+		current_time.year,
+		current_time.month,
+		current_time.day,
+		current_time.hour,
+		current_time.minute,
+		current_time.second
+	]
+	story_data["last_played_at"] = last_played_at
+
 	# 构造文件路径
 	var story_id = story_data.get("story_id", "")
 	if story_id.is_empty():

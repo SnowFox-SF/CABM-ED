@@ -171,8 +171,11 @@ func _refresh_story_list():
 	# "+"按钮已经在tscn中，不需要重新添加，只需要添加到数组中
 	story_buttons.append(plus_button)
 
+	# 按照last_played_at排序故事ID，最新的在最前面
+	var sorted_story_ids = _get_sorted_story_ids()
+
 	# 创建故事按钮
-	for story_id in stories_data:
+	for story_id in sorted_story_ids:
 		var story_data = stories_data[story_id]
 		var button = Button.new()
 		var is_selected = (story_id == selected_story_id)
@@ -511,6 +514,60 @@ func _on_story_needs_reload():
 
 	# 重新显示故事模式面板
 	show_panel()
+
+func _get_sorted_story_ids() -> Array:
+	"""获取按last_played_at排序的故事ID数组，最新的在前面"""
+	var story_list = []
+
+	# 将所有故事转换为数组以便排序
+	for story_id in stories_data:
+		var story_data = stories_data[story_id]
+		var last_played_at = ""
+
+		# 安全检查：确保story_data不为null且为字典类型
+		if story_data != null and story_data is Dictionary:
+			last_played_at = story_data.get("last_played_at", "")
+
+		story_list.append({
+			"story_id": story_id,
+			"last_played_at": last_played_at
+		})
+
+	# 自定义排序函数：按last_played_at降序排序（最新的在前面）
+	story_list.sort_custom(func(a, b):
+		var time_a = ""
+		var time_b = ""
+
+		if a and a.has("last_played_at"):
+			var temp_a = a.get("last_played_at")
+			if temp_a != null and temp_a is String:
+				time_a = temp_a
+
+		if b and b.has("last_played_at"):
+			var temp_b = b.get("last_played_at")
+			if temp_b != null and temp_b is String:
+				time_b = temp_b
+
+		# 如果都没有时间戳，保持原有顺序
+		if time_a.is_empty() and time_b.is_empty():
+			return false
+
+		# 没有时间戳的排在后面
+		if time_a.is_empty():
+			return false
+		if time_b.is_empty():
+			return true
+
+		# 按时间戳降序排序（最新的在前面）
+		return time_a > time_b
+	)
+
+	# 提取排序后的story_id
+	var sorted_ids = []
+	for item in story_list:
+		sorted_ids.append(item.story_id)
+
+	return sorted_ids
 
 func _truncate_text(text: String, max_length: int) -> String:
 	"""截断文本并添加省略号"""
