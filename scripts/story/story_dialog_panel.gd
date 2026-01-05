@@ -18,7 +18,8 @@ signal story_needs_reload
 
 # 故事数据
 var current_story_id: String = ""
-var current_node_id: String = ""
+var current_node_id: String = ""      # 用于树状图导航和UI显示
+var dialog_node_id: String = ""       # 始终指向用户实际对话的节点，用于创建子节点
 var story_data: Dictionary = {}
 var nodes_data: Dictionary = {}
 
@@ -84,6 +85,7 @@ func initialize(story_id: String, node_id: String):
 	"""初始化对话面板"""
 	current_story_id = story_id
 	current_node_id = node_id
+	dialog_node_id = node_id  # 初始时对话节点和当前节点相同
 
 	# 重置存档标记（开始新的对话会话）
 	if save_manager:
@@ -174,9 +176,9 @@ func _initialize_tree_view():
 	# 创建故事节点数据的副本，用于添加新节点
 	var extended_nodes = nodes_data.duplicate(true)
 
-	# 在当前节点后添加一个空白节点"……"
-	var current_node_data = extended_nodes.get(current_node_id, {})
-	var child_nodes = current_node_data.get("child_nodes", [])
+	# 在对话节点后添加一个空白节点"……"（确保临时节点出现在正确的对话节点下）
+	var dialog_node_data = extended_nodes.get(dialog_node_id, {})
+	var child_nodes = dialog_node_data.get("child_nodes", [])
 
 	# 生成新节点的ID
 	var new_node_id = "dialog_temp_node_" + current_node_id
@@ -189,9 +191,9 @@ func _initialize_tree_view():
 	}
 	extended_nodes[new_node_id] = new_node_data
 
-	# 将新节点添加到当前节点的子节点列表中
+	# 将新节点添加到对话节点的子节点列表中
 	child_nodes.append(new_node_id)
-	extended_nodes[current_node_id]["child_nodes"] = child_nodes
+	extended_nodes[dialog_node_id]["child_nodes"] = child_nodes
 
 	# 重置树状图视角
 	tree_view.zoom_level = 1.0
@@ -483,9 +485,10 @@ func _on_load_previous_button_pressed():
 		# 在顶部添加上下文消息
 		_add_context_messages_at_top(previous_context["messages"])
 
-		# 更新当前节点ID到父节点（因为已经加载了上一层的上下文）
+		# 更新当前节点ID到父节点（用于UI显示，因为已经加载了上一层的上下文）
 		if not previous_context["new_current_node_id"].is_empty():
 			current_node_id = previous_context["new_current_node_id"]
+			# 注意：dialog_node_id 保持不变，确保创建存档点时在正确的对话节点下创建
 
 		# 检查是否还能继续加载
 		var can_load_more = context_loader.can_load_previous_context(current_node_id)
@@ -648,8 +651,10 @@ func _on_tree_node_selected(node_id: String):
 		if scroll_container:
 			context_loader.last_scroll_position = scroll_container.scroll_vertical
 
-	# 更新当前节点ID
+	# 更新当前节点ID（用于UI显示）
 	current_node_id = node_id
+	# 同时更新对话节点ID（用户选择节点时，对话也切换到该节点）
+	dialog_node_id = node_id
 
 	# 隐藏加载按钮
 	load_previous_button.visible = false
@@ -675,8 +680,12 @@ func get_current_story_id() -> String:
 	return current_story_id
 
 func get_current_node_id() -> String:
-	"""获取当前节点ID"""
+	"""获取当前节点ID（UI显示的节点）"""
 	return current_node_id
+
+func get_dialog_node_id() -> String:
+	"""获取对话节点ID（实际用于对话和创建子节点的节点）"""
+	return dialog_node_id
 
 func _initialize_story_ai():
 	"""初始化StoryAI"""
@@ -836,7 +845,7 @@ func _build_story_context() -> Dictionary:
 	# 直接返回完整的故事数据，让AI系统自己处理
 	return {
 		"story_data": story_data,           # 完整的故事JSON数据
-		"current_node_id": current_node_id, # 当前节点ID（修复字段名）
+		"current_node_id": dialog_node_id,  # 使用对话节点ID（修复：创建存档点时应在对话节点下创建）
 		"story_id": current_story_id,       # 故事ID
 		"experienced_nodes": _get_experienced_nodes()  # 缓存的经历节点
 	}
@@ -897,7 +906,7 @@ func _precompute_experienced_nodes():
 			"display_text": current_node.get("display_text", "")
 		})
 
-	# 从当前节点开始往上遍历父节点
+	# 从当前节点开始往上遍历父节点（使用UI显示的当前节点）
 	var current_id = current_node_id
 	var visited = {}  # 防止循环引用
 

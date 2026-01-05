@@ -152,6 +152,7 @@ func _create_new_story_node(summary_text: String) -> bool:
 	var story_data = story_dialog_panel.story_data
 	var nodes_data = story_dialog_panel.nodes_data
 	var current_node_id = story_dialog_panel.current_node_id
+	var dialog_node_id = story_dialog_panel.dialog_node_id  # 使用对话节点ID作为父节点
 
 	if story_data.is_empty() or nodes_data.is_empty():
 		push_error("故事数据未加载")
@@ -170,9 +171,9 @@ func _create_new_story_node(summary_text: String) -> bool:
 	# 添加新节点到节点数据中
 	nodes_data[new_node_id] = new_node_data
 
-	# 将新节点添加到当前节点的子节点列表中
-	var current_node_data = nodes_data.get(current_node_id, {})
-	var child_nodes = current_node_data.get("child_nodes", [])
+	# 将新节点添加到对话节点的子节点列表中（确保新节点创建在正确的父节点下）
+	var dialog_node_data = nodes_data.get(dialog_node_id, {})
+	var child_nodes = dialog_node_data.get("child_nodes", [])
 
 	# 查找并替换临时节点（如果存在）
 	var temp_node_replaced = false
@@ -191,17 +192,24 @@ func _create_new_story_node(summary_text: String) -> bool:
 	if not temp_node_replaced:
 		child_nodes.append(new_node_id)
 
-	nodes_data[current_node_id]["child_nodes"] = child_nodes
+	nodes_data[dialog_node_id]["child_nodes"] = child_nodes
 
 	# 更新故事数据
 	story_dialog_panel.nodes_data = nodes_data
-	story_dialog_panel.current_node_id = new_node_id
+	story_dialog_panel.current_node_id = new_node_id  # 更新UI显示的当前节点
+	story_dialog_panel.dialog_node_id = new_node_id  # 更新对话节点到新节点
 
 	# 重新计算经历节点缓存
 	story_dialog_panel._precompute_experienced_nodes()
 
 	# 重新渲染树状图（会自动创建新的临时节点）
 	story_dialog_panel._initialize_tree_view()
+
+	# 清空上下文加载器缓存，因为新节点是全新的，不应该继承旧节点的加载历史
+	if story_dialog_panel.context_loader:
+		story_dialog_panel.context_loader.clear_cache()
+		# 标记新节点为已加载，防止它被用来加载上一章节
+		story_dialog_panel.context_loader.loaded_parent_nodes.append(new_node_id)
 
 	# 保存修改后的故事数据到硬盘
 	_save_story_data_to_disk()
