@@ -77,6 +77,13 @@ func clear_current_node_messages():
 	"""清空当前节点消息"""
 	current_node_messages.clear()
 
+func remove_last_user_message_from_current_node():
+	"""从当前节点消息中移除最后一条用户消息"""
+	for i in range(current_node_messages.size() - 1, -1, -1):
+		if current_node_messages[i].type == "user":
+			current_node_messages.remove_at(i)
+			break
+
 func get_current_node_messages() -> Array:
 	"""获取当前节点消息"""
 	return current_node_messages.duplicate()

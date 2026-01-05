@@ -589,6 +589,7 @@ func _disable_input_during_ai_response():
 	is_ai_responding = true
 	message_input.editable = false
 	message_input.modulate = Color(0.7, 0.7, 0.7)  # 变暗表示禁用
+	message_input.placeholder_text = "正在回复..."
 	_update_send_button_style()
 
 func _enable_input_after_ai_response():
@@ -596,6 +597,7 @@ func _enable_input_after_ai_response():
 	is_ai_responding = false
 	message_input.editable = true
 	message_input.modulate = Color(1, 1, 1)  # 恢复正常颜色
+	message_input.placeholder_text = "输入消息..."
 	_update_send_button_style()
 
 func _set_input_mode(multi_line: bool):
@@ -723,6 +725,10 @@ func _on_ai_text_chunk_ready(text_chunk: String):
 	# 更新气泡文本
 	_update_streaming_bubble_text(accumulated_streaming_text)
 
+	# 检查是否需要滚动到底部（气泡高度可能增加）
+	if _is_near_bottom():
+		call_deferred("_smooth_scroll_to_bottom")
+
 func _on_streaming_completed():
 	"""流式响应完成"""
 	print("StoryAI流式回复完成")
@@ -793,6 +799,10 @@ func _on_request_error_occurred(error_message: String):
 
 		# 移除最后一条用户消息（因为还没有AI响应）
 		_remove_last_messages(1)
+
+		# 从保存管理器中移除最后一条用户消息
+		if save_manager:
+			save_manager.remove_last_user_message_from_current_node()
 
 	# 使用系统气泡显示错误信息
 	var error_line = "出现错误：" + error_message
