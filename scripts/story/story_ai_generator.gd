@@ -23,10 +23,15 @@ var current_title: String = ""
 var current_summary: String = ""
 var full_response_content: String = ""  # 累积的完整响应内容
 
+# 确认机制
+var confirm_timer: Timer = null
+var is_confirm_mode: bool = false
+
 func _ready():
 	"""初始化AI生成器"""
 	_initialize_ai_config()
 	_initialize_http_client()
+	_initialize_confirm_timer()
 
 func _initialize_ai_config():
 	"""初始化AI配置"""
@@ -49,6 +54,14 @@ func _initialize_http_client():
 	ai_http_client.stream_completed.connect(_on_stream_completed)
 	ai_http_client.stream_error.connect(_on_stream_error)
 
+func _initialize_confirm_timer():
+	"""初始化确认计时器"""
+	confirm_timer = Timer.new()
+	add_child(confirm_timer)
+	confirm_timer.wait_time = 3.0
+	confirm_timer.one_shot = true
+	confirm_timer.timeout.connect(_on_confirm_timeout)
+
 func set_story_creation_panel(panel: Control):
 	"""设置故事创建面板引用"""
 	story_creation_panel = panel
@@ -58,6 +71,21 @@ func generate_story_from_keywords(keywords: String):
 	if is_generating:
 		push_warning("AI生成正在进行中，请等待完成")
 		return
+
+	# 检查输入框是否有内容
+	var has_content = _has_input_content()
+
+	if has_content and not is_confirm_mode:
+		# 进入确认模式
+		is_confirm_mode = true
+		_update_generate_button_state(false, "清空并生成")
+		confirm_timer.start()
+		return
+
+	# 退出确认模式（如果在确认模式中）
+	if is_confirm_mode:
+		is_confirm_mode = false
+		confirm_timer.stop()
 
 	if api_key.is_empty() or not config.has("summary_model"):
 		var error_msg = "AI配置不完整，请检查配置"
@@ -87,6 +115,16 @@ func _clear_input_fields():
 	if story_creation_panel:
 		story_creation_panel.title_input.text = ""
 		story_creation_panel.summary_input.text = ""
+
+func _has_input_content() -> bool:
+	"""检查输入框是否有内容"""
+	if not story_creation_panel:
+		return false
+
+	var title_text = story_creation_panel.title_input.text.strip_edges() if story_creation_panel.title_input else ""
+	var summary_text = story_creation_panel.summary_input.text.strip_edges() if story_creation_panel.summary_input else ""
+
+	return not title_text.is_empty() or not summary_text.is_empty()
 
 func _update_generate_button_state(disabled: bool, text: String = ""):
 	"""更新生成按钮状态"""
@@ -141,12 +179,22 @@ func _call_story_generation_api(keywords: String):
 
 func _build_story_generation_system_prompt() -> String:
 	"""构建故事生成系统提示词"""
-	var prompt = """你是一个创意故事生成助手。请根据用户提供的关键词，创作一个引人入胜的故事开头，不超过50字。
+	# 获取角色信息
+	var save_mgr = get_node("/root/SaveManager")
+	var character_name = save_mgr.get_character_name()
+	var user_name = save_mgr.get_user_name()
+
+	var prompt = """你是一个故事生成助手。请根据用户提供的关键词，创作一个引人入胜的故事开头，不超过50字。
+人物信息：两个主角名字是“{character_name}”和“{user_name}”。
 要求：第一行是标题，然后用一个空行分隔，后面是开头正文内容。禁止使用markdown。参考格式：
 故事标题
 
 这是故事的开头，根据关键词创作。
 """
+	prompt = prompt.format({
+		"character_name": character_name,
+		"user_name": user_name
+	})
 
 	return prompt
 
@@ -331,3 +379,8 @@ func stop_generation():
 		full_response_content = ""  # 清空响应内容
 		ai_http_client.stop_streaming()
 		_update_generate_button_state(false, "生成故事")
+
+func _on_confirm_timeout():
+	"""确认计时器超时"""
+	is_confirm_mode = false
+	_update_generate_button_state(false, "生成故事")
