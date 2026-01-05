@@ -17,6 +17,7 @@ const StoryCreationPanel = preload("res://scenes/story_creation_panel.tscn")
 @onready var operation_bar: HBoxContainer = $Panel/VBoxContainer/HSplitContainer/TreeViewPanel/VBoxContainer/OperationBar
 @onready var node_text_label: Label = $Panel/VBoxContainer/HSplitContainer/TreeViewPanel/VBoxContainer/OperationBar/NodeTextLabel
 @onready var start_from_button: Button = $Panel/VBoxContainer/HSplitContainer/TreeViewPanel/VBoxContainer/OperationBar/StartFromButton
+@onready var delete_story_button: Button = $Panel/VBoxContainer/HSplitContainer/TreeViewPanel/VBoxContainer/OperationBar/DeleteStoryButton
 
 # 故事数据
 var stories_data: Dictionary = {}
@@ -33,6 +34,9 @@ var story_dialog_panel: Control = null
 # 故事创建面板相关
 var story_creation_panel: Control = null
 
+# 删除确认窗口相关
+var delete_confirmation_dialog: ConfirmationDialog = null
+
 # 平滑移动相关
 var view_tween: Tween = null
 
@@ -42,6 +46,7 @@ func _ready():
 	close_button.pressed.connect(_on_close_pressed)
 	plus_button.pressed.connect(_on_plus_button_pressed)
 	start_from_button.pressed.connect(_on_start_from_pressed)
+	delete_story_button.pressed.connect(_on_delete_story_pressed)
 
 	# 连接树状图信号
 	tree_view.node_selected.connect(_on_tree_node_selected)
@@ -77,6 +82,12 @@ func _create_tween():
 	# 只在需要时创建Tween，避免空Tween被启动
 	pass
 
+func _update_operation_buttons():
+	"""更新操作按钮的显示状态"""
+	# 删除按钮：只在选择了故事且没有选中节点时显示
+	if delete_story_button:
+		delete_story_button.visible = not selected_story_id.is_empty() and selected_node_id.is_empty()
+
 func _clear_node_selection():
 	"""清除节点选中状态"""
 	selected_node_id = ""
@@ -84,7 +95,9 @@ func _clear_node_selection():
 		start_from_button.visible = false
 	if node_text_label:
 		node_text_label.text = ""
-		node_text_label.visible = false
+
+	# 更新删除按钮显示状态
+	_update_operation_buttons()
 
 	# 使用TreeView的方法清除选中状态
 	tree_view.clear_selection()
@@ -333,6 +346,9 @@ func _on_story_selected(story_id: String):
 	_refresh_story_list()  # 刷新故事列表显示
 	_render_story_tree()
 
+	# 更新操作按钮状态
+	_update_operation_buttons()
+
 func _render_story_tree():
 	"""渲染故事树状图"""
 	if not current_story_id or not stories_data.has(current_story_id):
@@ -362,6 +378,9 @@ func _on_tree_node_selected(node_id: String):
 			node_text_label.text = full_text
 			node_text_label.visible = true
 
+	# 更新操作按钮状态
+	_update_operation_buttons()
+
 	# TreeView 会自动平滑移动到选中节点
 
 	print("节点被选中: ", node_id)
@@ -371,7 +390,9 @@ func _on_tree_node_deselected():
 	selected_node_id = ""
 	start_from_button.visible = false
 	node_text_label.text = ""
-	node_text_label.visible = false
+
+	# 更新操作按钮状态
+	_update_operation_buttons()
 
 	print("节点被取消选中")
 
@@ -497,3 +518,68 @@ func _estimate_text_height(text: String, font_size: int, max_width: float) -> fl
 	var chars_per_line = max_width / (font_size * 0.6)  # 估算每行字符数
 	var line_count = ceil(text.length() / chars_per_line)
 	return line_count * font_size * 1.2
+
+func _on_delete_story_pressed():
+	"""删除故事按钮点击处理"""
+	if selected_story_id.is_empty():
+		return
+
+	_show_delete_confirmation_dialog()
+
+func _show_delete_confirmation_dialog():
+	"""显示删除确认对话框"""
+	if delete_confirmation_dialog:
+		delete_confirmation_dialog.queue_free()
+
+	delete_confirmation_dialog = ConfirmationDialog.new()
+	delete_confirmation_dialog.title = "确认删除"
+	delete_confirmation_dialog.dialog_text = "确定要删除故事 \"" + stories_data[selected_story_id].get("story_title", "未知标题") + "\" 吗？\n\n此操作无法撤销！"
+	delete_confirmation_dialog.ok_button_text = "确认删除"
+	delete_confirmation_dialog.cancel_button_text = "手滑了"
+
+	get_parent().add_child(delete_confirmation_dialog)
+
+	delete_confirmation_dialog.confirmed.connect(_on_delete_confirmed)
+	delete_confirmation_dialog.canceled.connect(_on_delete_canceled)
+
+	delete_confirmation_dialog.popup_centered(Vector2(400, 150))
+
+func _on_delete_confirmed():
+	"""确认删除故事"""
+	if selected_story_id.is_empty() or not stories_data.has(selected_story_id):
+		return
+
+	# 删除故事文件
+	var file_path = "user://story/" + selected_story_id + ".json"
+	if FileAccess.file_exists(file_path):
+		var error = DirAccess.remove_absolute(ProjectSettings.globalize_path(file_path))
+		if error != OK:
+			print("删除故事文件失败: ", file_path)
+			return
+
+	# 从数据中移除故事
+	stories_data.erase(selected_story_id)
+
+	# 清除选择状态
+	selected_story_id = ""
+	current_story_id = ""
+	_clear_node_selection()
+
+	# 刷新故事列表
+	_refresh_story_list()
+
+	# 隐藏树状图
+	tree_view.clear_tree()
+
+	# 清理确认对话框
+	if delete_confirmation_dialog:
+		delete_confirmation_dialog.queue_free()
+		delete_confirmation_dialog = null
+
+	print("故事已删除: ", selected_story_id)
+
+func _on_delete_canceled():
+	"""取消删除故事"""
+	if delete_confirmation_dialog:
+		delete_confirmation_dialog.queue_free()
+		delete_confirmation_dialog = null
