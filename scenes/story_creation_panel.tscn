@@ -39,6 +39,8 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 color = Color(0, 0, 0, 0.3)
 
 [node name="Panel" type="Panel" parent="."]
@@ -139,8 +141,8 @@ text = "*故事简介："
 [node name="SummaryInput" type="TextEdit" parent="Panel/VBoxContainer/Content/SummarySection"]
 layout_mode = 2
 size_flags_vertical = 3
-wrap_mode = 1
 placeholder_text = "这一定会是一个不同以往的浪漫故事♪"
+wrap_mode = 1
 
 [node name="BottomBar" type="HBoxContainer" parent="Panel/VBoxContainer"]
 layout_mode = 2

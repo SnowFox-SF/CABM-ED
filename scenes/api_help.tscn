@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://djusalwha663y"]
+[gd_scene load_steps=4 format=3 uid="uid://djusalwha663y"]
 
 [ext_resource type="Script" uid="uid://bahxpua6bjp0r" path="res://scripts/api_help.gd" id="1"]
 [ext_resource type="Texture2D" uid="uid://cxl5ur7ityk7" path="res://assets/images/index2.png" id="2_yxhmr"]
+[ext_resource type="Texture2D" uid="uid://dmnrypo1kjnfr" path="res://assets/images/SilverWolf.png" id="3_xm866"]
 
 [node name="APIHelp" type="Control"]
 layout_mode = 3
@@ -22,6 +23,17 @@ grow_vertical = 2
 texture = ExtResource("2_yxhmr")
 expand_mode = 1
 stretch_mode = 5
+
+[node name="TextureRect" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 857.0
+offset_top = 162.0
+offset_right = 957.0
+offset_bottom = 262.0
+tooltip_text = "这是CABM-ED的开发者
+不卖，纯挂饰"
+tooltip_auto_translate_mode = 1
+texture = ExtResource("3_xm866")
 
 [node name="Container" type="VBoxContainer" parent="."]
 layout_mode = 1

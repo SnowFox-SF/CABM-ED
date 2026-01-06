@@ -6,7 +6,6 @@ extends Control
 @onready var character_name_input: LineEdit = $SetupContainer/CharacterNameContainer/CharacterNameInput
 @onready var api_key_input: LineEdit = $SetupContainer/APIKeyContainer/APIKeyInput
 @onready var start_button: Button = $SetupContainer/StartButton
-@onready var skip_api_label: Label = $SetupContainer/APIKeyContainer/SkipLabel
 @onready var help_button: Button = $SetupContainer/APIKeyContainer/HelpButton
 @onready var notice_label: Label = $SetupContainer/NoticeLabel
 @onready var import_button: Button = $ImportButton
