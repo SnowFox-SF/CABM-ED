@@ -124,6 +124,11 @@ func setup_other_container(container: StorageContainer, title: String = "容器"
 
 func open_inventory_only():
 	"""只打开玩家背包（无其他容器）"""
+	# 清理其他容器引用
+	if other_container and other_container.storage_changed.is_connected(_refresh_other_slots):
+		other_container.storage_changed.disconnect(_refresh_other_slots)
+	other_container = null
+
 	if container_panel:
 		container_panel.hide()
 	_refresh_player_slots()
