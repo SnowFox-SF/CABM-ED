@@ -935,6 +935,17 @@ func _show_split_ui(item_data: Dictionary):
 	slider.step = 1
 	split_container.add_child(slider)
 
+	# 创建数量显示文本框
+	var count_label = Label.new()
+	count_label.custom_minimum_size = Vector2(50, 36)
+	count_label.text = str(int(slider.value))
+	count_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	split_container.add_child(count_label)
+
+	# 连接滑杆值改变信号来更新文本框
+	slider.value_changed.connect(func(value): count_label.text = str(int(value)))
+
 	# 创建分离按钮
 	var confirm_button = Button.new()
 	confirm_button.text = "分离"
