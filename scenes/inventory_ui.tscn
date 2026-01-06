@@ -1,7 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://c8k3nan5p2qrs"]
+[gd_scene load_steps=3 format=3 uid="uid://c8k3nan5p2qrs"]
 
-[ext_resource type="PackedScene" uid="uid://bvn8k3nan5p2qrs" path="res://scenes/universal_inventory_ui.tscn" id="1"]
-[ext_resource type="Script" path="res://scripts/inventory_ui.gd" id="2"]
+[ext_resource type="PackedScene" uid="uid://b0wadr1holiqe" path="res://scenes/universal_inventory_ui.tscn" id="1"]
+[ext_resource type="Script" uid="uid://dj51g8d6866a3" path="res://scripts/inventory_ui.gd" id="2"]
 
 [node name="InventoryUI" instance=ExtResource("1")]
 script = ExtResource("2")

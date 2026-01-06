@@ -18,7 +18,15 @@ var info_panel: PanelContainer
 var info_name: Label
 var info_icon: TextureRect
 var info_desc: Label
+var button_container: HBoxContainer
 var use_button: Button
+var split_button: Button
+
+var split_container: HBoxContainer
+var split_slider: HSlider
+var split_count_label: Label
+var split_confirm_button: Button
+var split_cancel_button: Button
 
 var close_button: Button
 
@@ -47,34 +55,17 @@ const WEAPON_SLOT_SCENE = preload("res://scenes/weapon_slot.tscn")
 func _ready():
 	# 获取节点引用
 	_get_node_references()
-	
+
 	hide()
 	if close_button:
 		close_button.pressed.connect(_on_close_pressed)
-	# 创建按钮容器
-	var info_vbox = get_node_or_null("Panel/HBoxContainer/InfoPanel/VBox")
-	if info_vbox:
-		# 创建按钮水平容器
-		var button_container = HBoxContainer.new()
-		button_container.custom_minimum_size = Vector2(0, 36)
-		info_vbox.add_child(button_container)
 
-		# 创建"使用"按钮
-		use_button = Button.new()
-		use_button.text = "使用"
-		use_button.custom_minimum_size = Vector2(60, 36)
-		use_button.disabled = true
-		button_container.add_child(use_button)
+	# 连接按钮信号
+	if use_button:
 		use_button.pressed.connect(_on_use_button_pressed)
-
-		# 创建"分离"按钮
-		var split_button = Button.new()
-		split_button.text = "分离"
-		split_button.custom_minimum_size = Vector2(60, 36)
-		split_button.disabled = true
-		button_container.add_child(split_button)
+	if split_button:
 		split_button.pressed.connect(_on_split_button_pressed)
-	
+
 	# 确保全屏布局
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -93,7 +84,17 @@ func _get_node_references():
 	info_name = get_node_or_null("Panel/HBoxContainer/InfoPanel/VBox/ItemName")
 	info_icon = get_node_or_null("Panel/HBoxContainer/InfoPanel/VBox/ItemIcon")
 	info_desc = get_node_or_null("Panel/HBoxContainer/InfoPanel/VBox/ScrollContainer/ItemDescription")
-	
+
+	button_container = get_node_or_null("Panel/HBoxContainer/InfoPanel/VBox/ButtonContainer")
+	use_button = get_node_or_null("Panel/HBoxContainer/InfoPanel/VBox/ButtonContainer/UseButton")
+	split_button = get_node_or_null("Panel/HBoxContainer/InfoPanel/VBox/ButtonContainer/SplitButton")
+
+	split_container = get_node_or_null("Panel/HBoxContainer/InfoPanel/VBox/SplitContainer")
+	split_slider = get_node_or_null("Panel/HBoxContainer/InfoPanel/VBox/SplitContainer/SplitSlider")
+	split_count_label = get_node_or_null("Panel/HBoxContainer/InfoPanel/VBox/SplitContainer/SplitCountLabel")
+	split_confirm_button = get_node_or_null("Panel/HBoxContainer/InfoPanel/VBox/SplitContainer/SplitConfirmButton")
+	split_cancel_button = get_node_or_null("Panel/HBoxContainer/InfoPanel/VBox/SplitContainer/SplitCancelButton")
+
 	close_button = get_node_or_null("Panel/CloseButton")
 
 func setup_player_inventory(container: StorageContainer, title: String = "背包"):
@@ -653,7 +654,6 @@ func _show_item_info(item_data: Dictionary):
 			use_button.disabled = disabled
 
 	# 更新分离按钮状态
-	var split_button = _get_split_button()
 	if split_button:
 		split_button.disabled = not can_split
 
@@ -667,7 +667,6 @@ func _clear_item_info():
 		info_icon.texture = null
 	if use_button:
 		use_button.disabled = true
-	var split_button = _get_split_button()
 	if split_button:
 		split_button.disabled = true
 
@@ -885,14 +884,6 @@ func _distance_to_rect(point: Vector2, rect: Rect2) -> float:
 	var dy = max(rect.position.y - point.y, 0.0, point.y - rect.end.y)
 	return sqrt(dx * dx + dy * dy)
 
-func _get_split_button() -> Button:
-	"""获取分离按钮"""
-	var info_vbox = get_node_or_null("Panel/HBoxContainer/InfoPanel/VBox")
-	if info_vbox and info_vbox.get_child_count() > 0:
-		var button_container = info_vbox.get_child(info_vbox.get_child_count() - 1)
-		if button_container is HBoxContainer and button_container.get_child_count() > 1:
-			return button_container.get_child(1) as Button
-	return null
 
 func _on_split_button_pressed():
 	"""分离按钮点击"""
@@ -912,73 +903,52 @@ func _on_split_button_pressed():
 
 func _show_split_ui(item_data: Dictionary):
 	"""显示分离界面"""
-	var info_vbox = get_node_or_null("Panel/HBoxContainer/InfoPanel/VBox")
-	if not info_vbox:
+	if not split_container or not split_slider or not split_count_label or not split_confirm_button or not split_cancel_button:
 		return
 
-	# 隐藏原按钮容器
-	var button_container = info_vbox.get_child(info_vbox.get_child_count() - 1)
-	if button_container is HBoxContainer:
+	# 隐藏按钮容器
+	if button_container:
 		button_container.hide()
 
-	# 创建分离界面容器
-	var split_container = HBoxContainer.new()
-	split_container.custom_minimum_size = Vector2(0, 36)
-	info_vbox.add_child(split_container)
+	# 配置滑杆
+	split_slider.min_value = 1
+	split_slider.max_value = int(item_data.count) - 1
+	split_slider.value = int((split_slider.min_value + split_slider.max_value) / 2)  # 默认中间值
+	split_slider.step = 1
 
-	# 创建滑杆
-	var slider = HSlider.new()
-	slider.custom_minimum_size = Vector2(100, 36)
-	slider.min_value = 1
-	slider.max_value = int(item_data.count) - 1
-	slider.value = int((slider.min_value + slider.max_value) / 2)  # 默认中间值
-	slider.step = 1
-	split_container.add_child(slider)
-
-	# 创建数量显示文本框
-	var count_label = Label.new()
-	count_label.custom_minimum_size = Vector2(50, 36)
-	count_label.text = str(int(slider.value))
-	count_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	split_container.add_child(count_label)
+	# 更新数量标签
+	split_count_label.text = str(int(split_slider.value))
 
 	# 连接滑杆值改变信号来更新文本框
-	slider.value_changed.connect(func(value): count_label.text = str(int(value)))
+	split_slider.value_changed.connect(_on_split_slider_value_changed)
 
-	# 创建分离按钮
-	var confirm_button = Button.new()
-	confirm_button.text = "分离"
-	confirm_button.custom_minimum_size = Vector2(60, 36)
-	split_container.add_child(confirm_button)
+	# 连接按钮信号
+	split_confirm_button.pressed.connect(_on_split_confirm_pressed)
+	split_cancel_button.pressed.connect(_on_split_cancel_pressed)
 
-	# 创建取消按钮
-	var cancel_button = Button.new()
-	cancel_button.text = "取消"
-	cancel_button.custom_minimum_size = Vector2(60, 36)
-	split_container.add_child(cancel_button)
+	# 显示分离容器
+	split_container.show()
 
-	# 连接信号
-	confirm_button.pressed.connect(_on_split_confirm_pressed.bind(slider, split_container))
-	cancel_button.pressed.connect(_on_split_cancel_pressed.bind(split_container))
-
-func _on_split_confirm_pressed(slider: HSlider, split_container: HBoxContainer):
+func _on_split_confirm_pressed():
 	"""确认分离"""
-	var split_count = int(slider.value)
+	if not split_slider:
+		return
+
+	var split_count = int(split_slider.value)
 	if split_count <= 0:
-		_restore_button_container(split_container)
+		_restore_button_container()
 		return
 
 	var container = player_container if selected_storage_type == "player" else other_container
 	if not container:
-		_restore_button_container(split_container)
+		_restore_button_container()
 		return
 
 	# 查找空格子
 	var target_index = _find_empty_slot_for_quick_transfer(container)
 	if target_index == -1:
 		push_warning("没有空格子可以分离物品")
-		_restore_button_container(split_container)
+		_restore_button_container()
 		return
 
 	# 执行分离
@@ -998,55 +968,41 @@ func _on_split_confirm_pressed(slider: HSlider, split_container: HBoxContainer):
 		_clear_selection()
 		_clear_item_info()
 
-	_restore_button_container(split_container)
+	_restore_button_container()
 
-func _on_split_cancel_pressed(split_container: HBoxContainer):
+func _on_split_cancel_pressed():
 	"""取消分离"""
-	_restore_button_container(split_container)
+	_restore_button_container()
 
-func _restore_button_container(split_container: HBoxContainer):
+func _on_split_slider_value_changed(value: float):
+	"""滑杆值改变"""
+	if split_count_label:
+		split_count_label.text = str(int(value))
+
+func _restore_button_container():
 	"""还原按钮容器"""
-	var info_vbox = get_node_or_null("Panel/HBoxContainer/InfoPanel/VBox")
-	if not info_vbox:
+	if not split_container:
 		return
 
-	# 移除分离界面
-	if split_container and split_container.is_inside_tree():
-		info_vbox.remove_child(split_container)
-		split_container.queue_free()
+	# 断开信号连接
+	if split_slider and split_slider.value_changed.is_connected(_on_split_slider_value_changed):
+		split_slider.value_changed.disconnect(_on_split_slider_value_changed)
+	if split_confirm_button and split_confirm_button.pressed.is_connected(_on_split_confirm_pressed):
+		split_confirm_button.pressed.disconnect(_on_split_confirm_pressed)
+	if split_cancel_button and split_cancel_button.pressed.is_connected(_on_split_cancel_pressed):
+		split_cancel_button.pressed.disconnect(_on_split_cancel_pressed)
 
-	# 显示原按钮容器
-	var button_container = info_vbox.get_child(info_vbox.get_child_count() - 1)
-	if button_container is HBoxContainer:
+	# 隐藏分离容器
+	split_container.hide()
+
+	# 显示按钮容器
+	if button_container:
 		button_container.show()
 
 func _restore_split_ui_if_needed():
 	"""如果有分离界面显示，则还原"""
-	var info_vbox = get_node_or_null("Panel/HBoxContainer/InfoPanel/VBox")
-	if not info_vbox:
-		return
-
-	# 检查是否有分离界面（超过基础的按钮容器）
-	var child_count = info_vbox.get_child_count()
-	if child_count <= 1:  # 只有基础信息和按钮容器
-		return
-
-	# 找到分离界面容器（应该是最后一个HBoxContainer）
-	var last_child = info_vbox.get_child(child_count - 1)
-	if last_child is HBoxContainer and last_child != _get_button_container():
-		_restore_button_container(last_child)
-
-func _get_button_container() -> HBoxContainer:
-	"""获取按钮容器"""
-	var info_vbox = get_node_or_null("Panel/HBoxContainer/InfoPanel/VBox")
-	if not info_vbox:
-		return null
-
-	# 按钮容器通常是第二个子节点（第一个是物品信息相关，第二个是按钮）
-	for child in info_vbox.get_children():
-		if child is HBoxContainer:
-			return child as HBoxContainer
-	return null
+	if split_container and split_container.visible:
+		_restore_button_container()
 
 
 func _on_weapon_slot_clicked(storage_type: String):
