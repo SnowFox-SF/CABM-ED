@@ -291,6 +291,7 @@ func _refresh_story_list():
 		button.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
 		button.add_theme_color_override("font_hover_color", Color(1.0, 1.0, 1.0, 1.0))
 		button.add_theme_color_override("font_pressed_color", Color(0.9, 0.9, 1.0, 1.0))
+		button.mouse_filter = 2
 
 		# 先添加按钮到容器，让其正确计算尺寸
 		story_list_container.add_child(button)
