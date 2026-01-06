@@ -795,43 +795,48 @@ func _compose_chat_texture(base_texture: Texture2D, expression_texture: Texture2
 	if expression_image.get_format() != Image.FORMAT_RGBA8:
 		expression_image.convert(Image.FORMAT_RGBA8)
 	
-	# 确保两个图片大小一致
+	# 居中无拉伸叠加表情图片
 	var base_size = base_image.get_size()
 	var expr_size = expression_image.get_size()
-	
-	# 如果大小不一致，调整表达图片大小
-	if base_size != expr_size:
-		# 使用更高质量的重采样方法
-		var resized_expr = expression_image.duplicate()
-		resized_expr.resize(base_size.x, base_size.y, Image.INTERPOLATE_LANCZOS)
-		# 调整大小后可能需要重新转换格式
-		if resized_expr.get_format() != Image.FORMAT_RGBA8:
-			resized_expr.convert(Image.FORMAT_RGBA8)
-		expression_image = resized_expr
-	
-	# 创建结果图像
+
+	# 创建结果图像（与base图片大小相同）
 	var result_image = Image.create(base_size.x, base_size.y, false, Image.FORMAT_RGBA8)
-	
-	# 合成算法 - 使用简单的覆盖混合
+
+	# 计算居中位置
+	var offset_x = int((base_size.x - expr_size.x) / 2)
+	var offset_y = int((base_size.y - expr_size.y) / 2)
+
+	# 首先复制base图片的所有像素
 	for x in range(base_size.x):
 		for y in range(base_size.y):
-			var base_pixel = base_image.get_pixel(x, y)
-			var expr_pixel = expression_image.get_pixel(x, y)
-			
-			# 表情层覆盖在基础层上
-			if expr_pixel.a < 0.01:  # 基本完全透明
-				result_image.set_pixel(x, y, base_pixel)
-			elif expr_pixel.a > 0.99:  # 基本完全不透明
-				result_image.set_pixel(x, y, expr_pixel)
-			else:
-				# Alpha混合
-				var alpha = expr_pixel.a
-				var blended_color = Color()
-				blended_color.r = base_pixel.r * (1.0 - alpha) + expr_pixel.r * alpha
-				blended_color.g = base_pixel.g * (1.0 - alpha) + expr_pixel.g * alpha
-				blended_color.b = base_pixel.b * (1.0 - alpha) + expr_pixel.b * alpha
-				blended_color.a = base_pixel.a * (1.0 - alpha) + expr_pixel.a  # 累积alpha
-				result_image.set_pixel(x, y, blended_color)
+			result_image.set_pixel(x, y, base_image.get_pixel(x, y))
+
+	# 然后在居中位置叠加表情图片
+	for x in range(expr_size.x):
+		for y in range(expr_size.y):
+			var base_x = x + offset_x
+			var base_y = y + offset_y
+
+			# 确保不超出base图片边界
+			if base_x >= 0 and base_x < base_size.x and base_y >= 0 and base_y < base_size.y:
+				var base_pixel = result_image.get_pixel(base_x, base_y)
+				var expr_pixel = expression_image.get_pixel(x, y)
+
+				# 表情层覆盖在基础层上
+				if expr_pixel.a < 0.01:  # 基本完全透明
+					# 保持base像素不变
+					pass
+				elif expr_pixel.a > 0.99:  # 基本完全不透明
+					result_image.set_pixel(base_x, base_y, expr_pixel)
+				else:
+					# Alpha混合
+					var alpha = expr_pixel.a
+					var blended_color = Color()
+					blended_color.r = base_pixel.r * (1.0 - alpha) + expr_pixel.r * alpha
+					blended_color.g = base_pixel.g * (1.0 - alpha) + expr_pixel.g * alpha
+					blended_color.b = base_pixel.b * (1.0 - alpha) + expr_pixel.b * alpha
+					blended_color.a = base_pixel.a * (1.0 - alpha) + expr_pixel.a  # 累积alpha
+					result_image.set_pixel(base_x, base_y, blended_color)
 	
 	# 创建纹理
 	var composed_texture = ImageTexture.create_from_image(result_image)
@@ -856,9 +861,9 @@ func _load_composed_chat_image_for_mood():
 		size = texture_normal.get_size()
 		print("使用缓存的合成聊天图片: ", cache_key)
 		return
-	
+
 	# 加载base.png
-	var base_image_path = "res://assets/images/character/%s/chat/base.png" % costume_id
+	var base_image_path = "res://assets/images/character/%s/base.png" % costume_id
 	if not ResourceLoader.exists(base_image_path):
 		print("base.png不存在: ", base_image_path, " 使用旧方式")
 		_load_default_composed_chat_image()
@@ -875,7 +880,7 @@ func _load_composed_chat_image_for_mood():
 	var expression_texture = null
 	
 	if not image_filename.is_empty():
-		var expression_image_path = "res://assets/images/character/%s/chat/%s" % [costume_id, image_filename]
+		var expression_image_path = "res://assets/images/moods/%s" % image_filename
 		if ResourceLoader.exists(expression_image_path):
 			expression_texture = load(expression_image_path) as Texture2D
 	
@@ -897,7 +902,7 @@ func _load_default_composed_chat_image():
 	var costume_id = _get_costume_id()
 	
 	# 加载base.png
-	var base_image_path = "res://assets/images/character/%s/chat/base.png" % costume_id
+	var base_image_path = "res://assets/images/character/%s/base.png" % costume_id
 	var base_texture = null
 	var normal_texture = null
 	
@@ -905,7 +910,7 @@ func _load_default_composed_chat_image():
 		base_texture = load(base_image_path) as Texture2D
 	
 	# 加载normal.png
-	var normal_image_path = "res://assets/images/character/%s/chat/normal.png" % costume_id
+	var normal_image_path = "res://assets/images/moods/normal.png"
 	if ResourceLoader.exists(normal_image_path):
 		normal_texture = load(normal_image_path) as Texture2D
 	
@@ -919,7 +924,7 @@ func _load_default_composed_chat_image():
 			return
 	
 	# 如果没有base，使用normal作为单独纹理
-	var fallback_path = "res://assets/images/character/%s/chat/normal.png" % costume_id
+	var fallback_path = "res://assets/images/moods/normal.png"
 	if ResourceLoader.exists(fallback_path):
 		texture_normal = load(fallback_path)
 		custom_minimum_size = texture_normal.get_size()
