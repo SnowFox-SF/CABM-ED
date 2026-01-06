@@ -3,6 +3,38 @@
 [ext_resource type="Script" uid="uid://yj42vt7oyrqw" path="res://scripts/story/story_dialog_panel.gd" id="1"]
 [ext_resource type="Texture2D" uid="uid://8vo55rwlb5of" path="res://assets/images/story_background2.png" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/universal_tree_view.tscn" id="3"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kg3em1"]
+bg_color = Color(0.26835972, 0.6612928, 0.19275102, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ce2531"]
+bg_color = Color(0.21489933, 0.75829023, 0.31385657, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_57v361"]
+bg_color = Color(0.21456605, 0.8545345, 0, 0.88235295)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_transparent"]
 bg_color = Color(0, 0, 0, 0)
@@ -121,6 +153,12 @@ wrap_mode = 1
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 size_flags_horizontal = 0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_kg3em1")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_ce2531")
+theme_override_styles/hover = SubResource("StyleBoxFlat_57v361")
 text = "创建存档点"
 
 [node name="TreeView" parent="Panel/HBoxContainer/LeftPanel" instance=ExtResource("3")]

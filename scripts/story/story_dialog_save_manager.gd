@@ -115,15 +115,15 @@ func create_checkpoint() -> Dictionary:
 	"""创建存档点"""
 	if not story_dialog_panel:
 		push_error("故事对话面板引用未设置")
-		return {"success": false, "summary": ""}
+		return {"success": false, "summary": "","reason":"故事对话面板引用未设置"}
 
 	if api_key.is_empty() or not config.has("summary_model"):
 		push_error("总结API配置不完整")
-		return {"success": false, "summary": ""}
+		return {"success": false, "summary": "","reason":"API配置不完整"}
 
 	if current_node_messages.is_empty():
 		push_error("当前节点没有对话内容")
-		return {"success": false, "summary": ""}
+		return {"success": false, "summary": "","reason":"当前节点没有对话内容"}
 
 	# 获取用户名和角色名
 	var user_name = story_dialog_panel._get_user_name()
@@ -451,7 +451,7 @@ func is_back_confirm_mode() -> bool:
 
 func should_show_checkpoint_pulse() -> bool:
 	"""检查是否应该显示存档点按钮的脉冲效果"""
-	return current_node_messages.size() >= 18
+	return current_node_messages.size() >= 12
 
 func _on_request_completed(_result: int, _response_code: int, _headers: PackedStringArray, _body: PackedByteArray):
 	"""处理请求完成信号"""

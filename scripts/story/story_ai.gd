@@ -15,7 +15,7 @@ var config: Dictionary = {}
 
 # 短期上下文（对话历史）- 用于AI API上下文
 var conversation_history: Array = []
-var max_history_count: int = 20  # 故事模式携带20条上下文
+var max_history_count: int = 14  # 故事模式携带14条上下文
 
 # 显示历史（完整的消息）- 保留完整记录，但限制大小防止内存泄漏
 var display_history: Array = []

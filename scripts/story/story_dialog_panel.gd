@@ -497,6 +497,12 @@ func _on_load_previous_button_pressed():
 func _on_create_checkpoint_pressed():
 	"""创建存档点按钮点击"""
 	if save_manager:
+		# 禁用输入控件
+		message_input.editable = false
+		message_input.modulate = Color(0.7, 0.7, 0.7)  # 变暗表示禁用
+		message_input.placeholder_text = "正在创建存档点..."
+		_update_send_button_style()
+
 		# 改变按钮状态为"正在创建..."
 		create_checkpoint_button.text = "正在创建..."
 		create_checkpoint_button.disabled = true
@@ -510,11 +516,19 @@ func _on_create_checkpoint_pressed():
 			_stop_checkpoint_pulse_animation()
 		else:
 			print("存档点创建失败")
-			_add_system_message("创建存档点失败")
+			_add_system_message("创建存档点失败："+result.reason)
 
 		# 恢复按钮状态
 		create_checkpoint_button.text = "创建存档点"
 		create_checkpoint_button.disabled = false
+
+		# 恢复输入控件
+		message_input.editable = true
+		message_input.modulate = Color(1, 1, 1)  # 恢复正常颜色
+		message_input.placeholder_text = "输入消息..."
+		_update_send_button_style()
+		# 恢复光标焦点
+		call_deferred("_grab_message_input_focus")
 	else:
 		print("保存管理器未初始化")
 		_add_system_message("保存管理器未初始化，无法创建存档点")
@@ -590,6 +604,8 @@ func _disable_input_during_ai_response():
 	message_input.editable = false
 	message_input.modulate = Color(0.7, 0.7, 0.7)  # 变暗表示禁用
 	message_input.placeholder_text = "正在回复..."
+	create_checkpoint_button.disabled = true
+	create_checkpoint_button.modulate = Color(0.7, 0.7, 0.7)  # 变暗表示禁用
 	_update_send_button_style()
 
 func _enable_input_after_ai_response():
@@ -598,7 +614,16 @@ func _enable_input_after_ai_response():
 	message_input.editable = true
 	message_input.modulate = Color(1, 1, 1)  # 恢复正常颜色
 	message_input.placeholder_text = "输入消息..."
+	create_checkpoint_button.disabled = false
+	create_checkpoint_button.modulate = Color(1, 1, 1)  # 恢复正常颜色
 	_update_send_button_style()
+	# 恢复光标焦点
+	call_deferred("_grab_message_input_focus")
+
+func _grab_message_input_focus():
+	"""恢复消息输入框的焦点"""
+	if message_input and message_input.editable:
+		message_input.grab_focus()
 
 func _set_input_mode(multi_line: bool):
 	"""设置输入框模式"""
@@ -1018,7 +1043,7 @@ func _start_checkpoint_pulse_animation():
 	checkpoint_pulse_tween.tween_property(
 		create_checkpoint_button,
 		"modulate",
-		Color(2.0, 2.0, 1.5, 1.0),  # 明亮的蓝色荧光
+		Color(2.0, 2.0, 2.0, 1.0),  # 明亮的荧光
 		0.5
 	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
