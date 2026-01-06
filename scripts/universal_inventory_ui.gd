@@ -51,15 +51,29 @@ func _ready():
 	hide()
 	if close_button:
 		close_button.pressed.connect(_on_close_pressed)
-	# 创建“使用”按钮
+	# 创建按钮容器
 	var info_vbox = get_node_or_null("Panel/HBoxContainer/InfoPanel/VBox")
 	if info_vbox:
+		# 创建按钮水平容器
+		var button_container = HBoxContainer.new()
+		button_container.custom_minimum_size = Vector2(0, 36)
+		info_vbox.add_child(button_container)
+
+		# 创建"使用"按钮
 		use_button = Button.new()
 		use_button.text = "使用"
-		use_button.custom_minimum_size = Vector2(0, 36)
-		use_button.hide()
-		info_vbox.add_child(use_button)
+		use_button.custom_minimum_size = Vector2(60, 36)
+		use_button.disabled = true
+		button_container.add_child(use_button)
 		use_button.pressed.connect(_on_use_button_pressed)
+
+		# 创建"分离"按钮
+		var split_button = Button.new()
+		split_button.text = "分离"
+		split_button.custom_minimum_size = Vector2(60, 36)
+		split_button.disabled = true
+		button_container.add_child(split_button)
+		split_button.pressed.connect(_on_split_button_pressed)
 	
 	# 确保全屏布局
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -170,6 +184,8 @@ func _create_player_slots():
 		slot.setup(i, "player")
 		slot.slot_clicked.connect(_on_slot_clicked)
 		slot.slot_double_clicked.connect(_on_slot_double_clicked)
+		slot.slot_right_clicked.connect(_on_slot_right_clicked)
+		slot.slot_shift_clicked.connect(_on_slot_shift_clicked)
 		slot.drag_started.connect(_on_drag_started)
 		slot.drag_ended.connect(_on_drag_ended)
 		player_grid.add_child(slot)
@@ -213,6 +229,8 @@ func _create_other_slots():
 		slot.setup(i, "other")
 		slot.slot_clicked.connect(_on_slot_clicked)
 		slot.slot_double_clicked.connect(_on_slot_double_clicked)
+		slot.slot_right_clicked.connect(_on_slot_right_clicked)
+		slot.slot_shift_clicked.connect(_on_slot_shift_clicked)
 		slot.drag_started.connect(_on_drag_started)
 		slot.drag_ended.connect(_on_drag_ended)
 		container_grid.add_child(slot)
@@ -280,40 +298,71 @@ func _on_slot_clicked(slot_index: int, storage_type: String):
 				_clear_item_info()
 
 func _on_slot_double_clicked(slot_index: int, storage_type: String):
-	"""格子被双击（仅在选中状态下触发分离）"""
-	if selected_slot_index != slot_index or selected_storage_type != storage_type:
-		return
-	
+	"""格子被双击 - 快速转移整格物品"""
 	var container = player_container if storage_type == "player" else other_container
 	if not container:
 		return
-	
+
 	var item = container.storage[slot_index]
-	if item == null or int(item.count) <= 1:
+	if item == null:
 		return
-	
-	# 分离一半（向下取整）
-	var split_count = int(int(item.count) / 2)
-	if split_count <= 0:
+
+	# 执行快速转移
+	var success = _quick_transfer_item(slot_index, storage_type)
+
+	# 如果转移成功，清除选中状态
+	if success:
+		_clear_selection()
+		_clear_item_info()
+
+func _on_slot_shift_clicked(slot_index: int, storage_type: String):
+	"""Shift+左键点击 - 快速转移整格物品"""
+	var container = player_container if storage_type == "player" else other_container
+	if not container:
 		return
-	
-	# 查找最近的空格子
-	var target_index = _find_nearest_empty_slot(slot_index, storage_type)
-	if target_index == -1:
-		push_warning("没有空格子可以分离物品")
+
+	var item = container.storage[slot_index]
+	if item == null:
 		return
-	
-	# 执行分离
-	container.split_item(slot_index, target_index, split_count)
-	
-	# 刷新显示
-	if storage_type == "player":
-		_refresh_player_slots()
-	else:
-		_refresh_other_slots()
-	
-	# 保持选中原格子
-	_show_item_info(item)
+
+	# 执行快速转移
+	var success = _quick_transfer_item(slot_index, storage_type)
+
+	# 如果转移成功，清除选中状态
+	if success:
+		_clear_selection()
+		_clear_item_info()
+
+func _on_slot_right_clicked(slot_index: int, storage_type: String):
+	"""右键点击 - 快速转移一个物品（仅在选中状态下）"""
+	if selected_slot_index != slot_index or selected_storage_type != storage_type:
+		return
+
+	var container = player_container if storage_type == "player" else other_container
+	if not container:
+		return
+
+	var item = container.storage[slot_index]
+	if item == null or int(item.count) < 1:
+		return
+
+	# 执行快速转移一个物品
+	var success = _quick_transfer_item(slot_index, storage_type, 1)
+
+	# 刷新显示但保持选中状态
+	if success:
+		if storage_type == "player":
+			_refresh_player_slots()
+		else:
+			_refresh_other_slots()
+
+		# 重新显示物品信息
+		var updated_item = container.storage[slot_index]
+		if updated_item != null:
+			_show_item_info(updated_item)
+		else:
+			_clear_selection()
+			_clear_item_info()
 
 func _on_drag_started(slot_index: int, storage_type: String):
 	"""开始拖拽"""
@@ -482,6 +531,9 @@ func _select_weapon_slot(storage_type: String):
 
 func _clear_selection():
 	"""清除选中状态"""
+	# 还原按钮栏（如果有分离界面显示）
+	_restore_split_ui_if_needed()
+
 	if selected_is_weapon_slot:
 		# 清除武器槽选中
 		if selected_storage_type == "player" and player_weapon_slot:
@@ -493,7 +545,7 @@ func _clear_selection():
 		var slots = player_slots if selected_storage_type == "player" else other_slots
 		if selected_slot_index < slots.size():
 			slots[selected_slot_index].set_selected(false)
-	
+
 	selected_slot_index = -1
 	selected_storage_type = ""
 	selected_is_weapon_slot = false
@@ -584,11 +636,13 @@ func _show_item_info(item_data: Dictionary):
 	
 	info_desc.text += details
 
-	# 更新“使用”按钮的显示
-	var can_use = not is_unknown and item_config.get("type") == "药品" and _is_in_explore_scene()
+	# 更新按钮状态
+	var can_use = not is_unknown and item_config.get("type") == "药品" and _is_in_explore_scene() and not selected_is_weapon_slot and selected_storage_type == "player" and selected_slot_index != -1
+	var can_split = not selected_is_weapon_slot and selected_slot_index != -1 and int(item_data.count) > 1
+
 	if use_button:
-		if can_use and not selected_is_weapon_slot and selected_storage_type == "player" and selected_slot_index != -1:
-			use_button.show()
+		use_button.disabled = not can_use
+		if can_use:
 			# 如果玩家已满血则禁用
 			var scene = get_tree().current_scene
 			var disabled := false
@@ -597,8 +651,11 @@ func _show_item_info(item_data: Dictionary):
 				if p:
 					disabled = int(p.health) >= int(p.max_health)
 			use_button.disabled = disabled
-		else:
-			use_button.hide()
+
+	# 更新分离按钮状态
+	var split_button = _get_split_button()
+	if split_button:
+		split_button.disabled = not can_split
 
 func _clear_item_info():
 	"""清空物品信息"""
@@ -609,7 +666,10 @@ func _clear_item_info():
 	if info_icon:
 		info_icon.texture = null
 	if use_button:
-		use_button.hide()
+		use_button.disabled = true
+	var split_button = _get_split_button()
+	if split_button:
+		split_button.disabled = true
 
 func _on_use_button_pressed():
 	if selected_is_weapon_slot:
@@ -819,11 +879,163 @@ func _distance_to_rect(point: Vector2, rect: Rect2) -> float:
 	# 如果点在矩形内，距离为0
 	if rect.has_point(point):
 		return 0.0
-	
+
 	# 计算点到矩形边界的最短距离
 	var dx = max(rect.position.x - point.x, 0.0, point.x - rect.end.x)
 	var dy = max(rect.position.y - point.y, 0.0, point.y - rect.end.y)
 	return sqrt(dx * dx + dy * dy)
+
+func _get_split_button() -> Button:
+	"""获取分离按钮"""
+	var info_vbox = get_node_or_null("Panel/HBoxContainer/InfoPanel/VBox")
+	if info_vbox and info_vbox.get_child_count() > 0:
+		var button_container = info_vbox.get_child(info_vbox.get_child_count() - 1)
+		if button_container is HBoxContainer and button_container.get_child_count() > 1:
+			return button_container.get_child(1) as Button
+	return null
+
+func _on_split_button_pressed():
+	"""分离按钮点击"""
+	if selected_is_weapon_slot or selected_slot_index < 0:
+		return
+
+	var container = player_container if selected_storage_type == "player" else other_container
+	if not container:
+		return
+
+	var item = container.storage[selected_slot_index]
+	if item == null or int(item.count) <= 1:
+		return
+
+	# 显示分离界面
+	_show_split_ui(item)
+
+func _show_split_ui(item_data: Dictionary):
+	"""显示分离界面"""
+	var info_vbox = get_node_or_null("Panel/HBoxContainer/InfoPanel/VBox")
+	if not info_vbox:
+		return
+
+	# 隐藏原按钮容器
+	var button_container = info_vbox.get_child(info_vbox.get_child_count() - 1)
+	if button_container is HBoxContainer:
+		button_container.hide()
+
+	# 创建分离界面容器
+	var split_container = HBoxContainer.new()
+	split_container.custom_minimum_size = Vector2(0, 36)
+	info_vbox.add_child(split_container)
+
+	# 创建滑杆
+	var slider = HSlider.new()
+	slider.custom_minimum_size = Vector2(100, 36)
+	slider.min_value = 1
+	slider.max_value = int(item_data.count) - 1
+	slider.value = int((slider.min_value + slider.max_value) / 2)  # 默认中间值
+	slider.step = 1
+	split_container.add_child(slider)
+
+	# 创建分离按钮
+	var confirm_button = Button.new()
+	confirm_button.text = "分离"
+	confirm_button.custom_minimum_size = Vector2(60, 36)
+	split_container.add_child(confirm_button)
+
+	# 创建取消按钮
+	var cancel_button = Button.new()
+	cancel_button.text = "取消"
+	cancel_button.custom_minimum_size = Vector2(60, 36)
+	split_container.add_child(cancel_button)
+
+	# 连接信号
+	confirm_button.pressed.connect(_on_split_confirm_pressed.bind(slider, split_container))
+	cancel_button.pressed.connect(_on_split_cancel_pressed.bind(split_container))
+
+func _on_split_confirm_pressed(slider: HSlider, split_container: HBoxContainer):
+	"""确认分离"""
+	var split_count = int(slider.value)
+	if split_count <= 0:
+		_restore_button_container(split_container)
+		return
+
+	var container = player_container if selected_storage_type == "player" else other_container
+	if not container:
+		_restore_button_container(split_container)
+		return
+
+	# 查找空格子
+	var target_index = _find_empty_slot_for_quick_transfer(container)
+	if target_index == -1:
+		push_warning("没有空格子可以分离物品")
+		_restore_button_container(split_container)
+		return
+
+	# 执行分离
+	container.split_item(selected_slot_index, target_index, split_count)
+
+	# 刷新显示
+	if selected_storage_type == "player":
+		_refresh_player_slots()
+	else:
+		_refresh_other_slots()
+
+	# 保持选中状态并更新信息
+	var updated_item = container.storage[selected_slot_index]
+	if updated_item != null:
+		_show_item_info(updated_item)
+	else:
+		_clear_selection()
+		_clear_item_info()
+
+	_restore_button_container(split_container)
+
+func _on_split_cancel_pressed(split_container: HBoxContainer):
+	"""取消分离"""
+	_restore_button_container(split_container)
+
+func _restore_button_container(split_container: HBoxContainer):
+	"""还原按钮容器"""
+	var info_vbox = get_node_or_null("Panel/HBoxContainer/InfoPanel/VBox")
+	if not info_vbox:
+		return
+
+	# 移除分离界面
+	if split_container and split_container.is_inside_tree():
+		info_vbox.remove_child(split_container)
+		split_container.queue_free()
+
+	# 显示原按钮容器
+	var button_container = info_vbox.get_child(info_vbox.get_child_count() - 1)
+	if button_container is HBoxContainer:
+		button_container.show()
+
+func _restore_split_ui_if_needed():
+	"""如果有分离界面显示，则还原"""
+	var info_vbox = get_node_or_null("Panel/HBoxContainer/InfoPanel/VBox")
+	if not info_vbox:
+		return
+
+	# 检查是否有分离界面（超过基础的按钮容器）
+	var child_count = info_vbox.get_child_count()
+	if child_count <= 1:  # 只有基础信息和按钮容器
+		return
+
+	# 找到分离界面容器（应该是最后一个HBoxContainer）
+	var last_child = info_vbox.get_child(child_count - 1)
+	if last_child is HBoxContainer and last_child != _get_button_container():
+		_restore_button_container(last_child)
+
+func _get_button_container() -> HBoxContainer:
+	"""获取按钮容器"""
+	var info_vbox = get_node_or_null("Panel/HBoxContainer/InfoPanel/VBox")
+	if not info_vbox:
+		return null
+
+	# 按钮容器通常是第二个子节点（第一个是物品信息相关，第二个是按钮）
+	for child in info_vbox.get_children():
+		if child is HBoxContainer:
+			return child as HBoxContainer
+	return null
 
 
 func _on_weapon_slot_clicked(storage_type: String):
@@ -962,3 +1174,130 @@ func _move_weapon_item(from_type: String, to_index: int, to_type: String, to_is_
 		
 		from_container.storage_changed.emit()
 		to_container.storage_changed.emit()
+
+func _quick_transfer_item(from_index: int, from_type: String, transfer_count: int = -1):
+	"""快速转移物品
+	transfer_count: -1表示转移全部，否则转移指定数量"""
+	var from_container = player_container if from_type == "player" else other_container
+	if not from_container:
+		return false
+
+	var from_item = from_container.storage[from_index]
+	if from_item == null:
+		return false
+
+	# 确定目标容器（另一侧）
+	var to_type = "other" if from_type == "player" else "player"
+	var to_container = player_container if to_type == "player" else other_container
+	if not to_container:
+		return false
+
+	# 确定转移数量
+	var remaining_count = transfer_count if transfer_count != -1 else int(from_item.count)
+
+	# 获取物品配置
+	var item_config = from_container.get_item_config(from_item.item_id)
+	var max_stack = item_config.get("max_stack", 99)
+
+	# 递归转移，直到转移完毕或没有空间
+	while remaining_count > 0:
+		var transferred = false
+
+		# 1. 优先查找同物品且未满堆叠的格子
+		var target_index = _find_matching_slot_for_quick_transfer(from_item.item_id, to_container, max_stack)
+		if target_index != -1:
+			# 转移到同物品格子
+			var actual_transferred = _transfer_to_matching_slot(from_index, from_type, target_index, to_type, remaining_count, max_stack)
+			remaining_count -= actual_transferred
+			transferred = true
+
+		if not transferred:
+			# 2. 查找空格子
+			target_index = _find_empty_slot_for_quick_transfer(to_container)
+			if target_index != -1:
+				# 转移到空格子
+				var actual_transferred = _transfer_to_empty_slot(from_index, from_type, target_index, to_type, remaining_count)
+				remaining_count -= actual_transferred
+				transferred = true
+
+		if not transferred:
+			# 没有合适位置，停止转移
+			break
+
+	# 返回是否成功（只要转移了至少1个物品就算成功）
+	return transfer_count == -1 or (transfer_count - remaining_count) > 0
+
+func _find_matching_slot_for_quick_transfer(item_id: String, container: StorageContainer, max_stack: int) -> int:
+	"""查找可以合并的同物品格子（未满堆叠）"""
+	for i in range(container.storage.size()):
+		var item = container.storage[i]
+		if item != null and item.item_id == item_id:
+			var current_count = int(item.count)
+			if current_count < max_stack:
+				return i
+	return -1
+
+func _find_empty_slot_for_quick_transfer(container: StorageContainer) -> int:
+	"""查找空格子"""
+	for i in range(container.storage.size()):
+		if container.storage[i] == null:
+			return i
+	return -1
+
+func _transfer_to_matching_slot(from_index: int, from_type: String, to_index: int, to_type: String, transfer_count: int, max_stack: int) -> int:
+	"""转移到同物品格子（合并），返回实际转移的数量"""
+	var from_container = player_container if from_type == "player" else other_container
+	var to_container = player_container if to_type == "player" else other_container
+
+	var from_item = from_container.storage[from_index]
+	var to_item = to_container.storage[to_index]
+
+	var current_to_count = int(to_item.count)
+	var available_space = max_stack - current_to_count
+
+	# 实际转移数量不能超过可用空间
+	var actual_transfer = min(transfer_count, available_space)
+
+	# 执行转移
+	to_item.count = current_to_count + actual_transfer
+
+	if actual_transfer >= int(from_item.count):
+		# 转移全部，清除源格子
+		from_container.storage[from_index] = null
+	else:
+		# 部分转移
+		from_item.count = int(from_item.count) - actual_transfer
+		from_container.storage[from_index] = from_item
+
+	from_container.storage_changed.emit()
+	to_container.storage_changed.emit()
+	return actual_transfer
+
+func _transfer_to_empty_slot(from_index: int, from_type: String, to_index: int, to_type: String, transfer_count: int) -> int:
+	"""转移到空格子，返回实际转移的数量"""
+	var from_container = player_container if from_type == "player" else other_container
+	var to_container = player_container if to_type == "player" else other_container
+
+	var from_item = from_container.storage[from_index]
+
+	# 空格子可以容纳任意数量，直接转移
+	var actual_transfer = transfer_count
+
+	# 创建新物品数据
+	var new_item = from_item.duplicate()
+	new_item.count = transfer_count
+
+	# 放置到目标格子
+	to_container.storage[to_index] = new_item
+
+	if transfer_count >= int(from_item.count):
+		# 转移全部，清除源格子
+		from_container.storage[from_index] = null
+	else:
+		# 部分转移
+		from_item.count = int(from_item.count) - transfer_count
+		from_container.storage[from_index] = from_item
+
+	from_container.storage_changed.emit()
+	to_container.storage_changed.emit()
+	return actual_transfer

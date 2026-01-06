@@ -4,7 +4,7 @@ extends Node
 # 管理玩家背包和仓库数据
 
 const INVENTORY_SIZE = 30  # 背包格子数量
-const WAREHOUSE_SIZE=60
+const WAREHOUSE_SIZE=80
 const COOK_PREP_SIZE = 20  # 烹饪准备栏格子数量
 
 var inventory_container: StorageContainer

@@ -4,6 +4,8 @@ extends Panel
 
 signal slot_clicked(slot_index: int, storage_type: String)
 signal slot_double_clicked(slot_index: int, storage_type: String)
+signal slot_right_clicked(slot_index: int, storage_type: String)
+signal slot_shift_clicked(slot_index: int, storage_type: String)
 signal drag_started(slot_index: int, storage_type: String)
 signal drag_ended(slot_index: int, storage_type: String)
 
@@ -87,29 +89,39 @@ func set_selected(selected: bool):
 
 func _on_gui_input(event: InputEvent):
 	"""处理输入"""
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		if event.pressed:
-			# 鼠标按下
-			drag_start_position = event.position
-			is_dragging = false
-			
-			# 检测双击
-			var current_time = Time.get_ticks_msec() / 1000.0
-			if current_time - last_click_time < DOUBLE_CLICK_TIME and is_selected:
-				# 双击事件
-				slot_double_clicked.emit(slot_index, storage_type)
-				last_click_time = 0.0  # 重置，避免三击被识别为双击
-			else:
-				last_click_time = current_time
-		else:
-			# 鼠标释放
-			if is_dragging:
-				drag_ended.emit(slot_index, storage_type)
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				# 鼠标按下
+				drag_start_position = event.position
 				is_dragging = false
+
+				# 检测Shift+左键快速转移
+				if Input.is_key_pressed(KEY_SHIFT):
+					slot_shift_clicked.emit(slot_index, storage_type)
+					return
+
+				# 检测双击
+				var current_time = Time.get_ticks_msec() / 1000.0
+				if current_time - last_click_time < DOUBLE_CLICK_TIME and is_selected:
+					# 双击事件
+					slot_double_clicked.emit(slot_index, storage_type)
+					last_click_time = 0.0  # 重置，避免三击被识别为双击
+				else:
+					last_click_time = current_time
 			else:
-				# 单击事件
-				slot_clicked.emit(slot_index, storage_type)
-	
+				# 鼠标释放
+				if is_dragging:
+					drag_ended.emit(slot_index, storage_type)
+					is_dragging = false
+				else:
+					# 单击事件
+					slot_clicked.emit(slot_index, storage_type)
+
+		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+			# 右键点击
+			slot_right_clicked.emit(slot_index, storage_type)
+
 	elif event is InputEventMouseMotion:
 		# 检测拖拽开始
 		if event.button_mask & MOUSE_BUTTON_MASK_LEFT and not is_dragging:
