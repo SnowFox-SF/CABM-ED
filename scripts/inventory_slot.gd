@@ -103,7 +103,7 @@ func _on_gui_input(event: InputEvent):
 
 				# 检测双击
 				var current_time = Time.get_ticks_msec() / 1000.0
-				if current_time - last_click_time < DOUBLE_CLICK_TIME and is_selected:
+				if current_time - last_click_time < DOUBLE_CLICK_TIME:
 					# 双击事件
 					slot_double_clicked.emit(slot_index, storage_type)
 					last_click_time = 0.0  # 重置，避免三击被识别为双击
