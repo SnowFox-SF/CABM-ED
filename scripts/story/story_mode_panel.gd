@@ -107,10 +107,6 @@ func _clear_node_selection():
 		view_tween.kill()
 		view_tween = null
 
-
-
-
-
 func _load_stories():
 	"""加载所有故事文件"""
 	stories_data.clear()
@@ -291,7 +287,7 @@ func _refresh_story_list():
 		button.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
 		button.add_theme_color_override("font_hover_color", Color(1.0, 1.0, 1.0, 1.0))
 		button.add_theme_color_override("font_pressed_color", Color(0.9, 0.9, 1.0, 1.0))
-		button.mouse_filter = 2
+		button.mouse_filter = 1
 
 		# 先添加按钮到容器，让其正确计算尺寸
 		story_list_container.add_child(button)
