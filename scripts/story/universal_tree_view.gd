@@ -555,6 +555,8 @@ func select_node(node_id: String):
 		selected_node_id = node_id
 		_redraw_tree()
 		_smooth_move_to_node(node_id)
+		# 触发节点选中信号，让外部监听者更新UI
+		node_selected.emit(node_id)
 
 func clear_selection():
 	"""外部调用：清除选中状态"""

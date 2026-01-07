@@ -484,10 +484,10 @@ func _on_dialog_closed():
 
 func _on_story_needs_reload():
 	"""故事需要重载处理"""
-	# 保存当前选中的节点ID，用于重载后重新选中
-	var last_selected_node_id = selected_node_id
-
+	# 获取对话面板中最新的对话节点ID（用户创建存档点后会更新到新节点）
+	var latest_node_id = ""
 	if story_dialog_panel:
+		latest_node_id = story_dialog_panel.get_dialog_node_id()
 		story_dialog_panel.queue_free()
 		story_dialog_panel = null
 
@@ -505,9 +505,9 @@ func _on_story_needs_reload():
 
 		_render_story_tree()
 
-		# 如果之前有选中的节点，尝试重新选中它
-		if not last_selected_node_id.is_empty():
-			tree_view.select_node(last_selected_node_id)
+		# 选中最新的对话节点（如果存在）
+		if not latest_node_id.is_empty():
+			tree_view.select_node(latest_node_id)
 
 	# 重新显示故事模式面板
 	show_panel()

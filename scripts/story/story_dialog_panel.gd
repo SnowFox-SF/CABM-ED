@@ -195,22 +195,28 @@ func _initialize_tree_view():
 	child_nodes.append(new_node_id)
 	extended_nodes[dialog_node_id]["child_nodes"] = child_nodes
 
-	# 重置树状图视角
-	tree_view.zoom_level = 1.0
-	tree_view.pan_offset = Vector2.ZERO
-
-	# 渲染树状图
+	# 渲染树状图（不重置视角）
 	tree_view.render_tree(story_data.get("root_node", ""), extended_nodes)
 
 	# 禁用节点选中功能（只能查看，不能选择）
 	tree_view.set_selection_disabled(true)
 
-	# 延迟一帧后选中新建的"……"节点，确保渲染完成后再进行平滑移动
-	call_deferred("_select_new_node", new_node_id)
+	# 延迟一帧后，先立即移动到上一个节点（对话节点），然后平滑移动到新节点
+	call_deferred("_move_from_dialog_to_new_node", dialog_node_id, new_node_id)
 
-func _select_new_node(node_id: String):
-	"""延迟选中新节点"""
-	tree_view.select_node(node_id)
+func _move_from_dialog_to_new_node(from_node_id: String, to_node_id: String):
+	"""从对话节点平滑移动到新节点"""
+	# 先选中新节点（这会触发高亮显示和重绘）
+	tree_view.selected_node_id = to_node_id
+	tree_view._redraw_tree()
+	
+	# 立即移动到对话节点（不使用动画）
+	var target_offset = tree_view._calculate_target_view_position(from_node_id)
+	tree_view.pan_offset = target_offset
+	tree_view._apply_transform()
+	
+	# 然后平滑移动到新节点
+	tree_view._smooth_move_to_node(to_node_id)
 
 func _initialize_dialog():
 	"""初始化对话"""
