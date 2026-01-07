@@ -103,6 +103,12 @@ func _input(event):
 	elif event is InputEventMouseMotion:
 		if event.button_mask & MOUSE_BUTTON_LEFT and drag_start_pos != Vector2.ZERO:
 			var current_mouse_pos = get_viewport().get_mouse_position()
+			
+			# 检查鼠标是否仍在容器内
+			if not tree_view_rect.has_point(current_mouse_pos):
+				# 鼠标移出容器，停止拖拽但不重置drag_start_pos（允许释放）
+				return
+			
 			if not is_dragging:
 				# 检查是否超过拖拽阈值，开始拖拽
 				var distance = (current_mouse_pos - drag_start_pos).length()
