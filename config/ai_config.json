@@ -18,7 +18,7 @@
             "knowledge_memory": "{knowledge_memory}",
             "memory": "```\n{memory_context}\n```",
             "trigger": "{trigger_context}",
-            "task": "列出你在{start_time}到{end_time}这段{user_name}不在的时间里做的{event_count}件事情。这些事情应该符合你的角色设定，可以包括日常活动等。需要注意时间上的合理性。"
+            "task": "列出你在{start_time}到{end_time}这段时间里做的{event_count}件事情。这些事情应该符合你的角色设定，可以包括日常活动等。需要注意时间上的合理性。"
         },
         "prompt_frameworks": {
             "chat": [
