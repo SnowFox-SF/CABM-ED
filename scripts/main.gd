@@ -213,6 +213,7 @@ func _connect_signals():
 	# 选项菜单
 	action_menu.action_selected.connect(_on_action_selected)
 	action_menu.game_selected.connect(_on_game_selected)
+	action_menu.companion_mode_selected.connect(_on_companion_mode_selected)
 	
 	# 场景菜单
 	scene_menu.scene_selected.connect(_on_scene_menu_selected)
@@ -495,6 +496,24 @@ func _on_action_selected(action: String):
 			chat_dialog.show_dialog("passive")
 			if has_node("/root/UIManager"):
 				get_node("/root/UIManager").disable_all()
+
+func _on_companion_mode_selected():
+	"""处理陪伴模式选择"""
+	print("进入陪伴模式")
+	
+	# 验证当前场景是否为书房
+	if scene_manager.current_scene != "studyroom":
+		if message_display_manager:
+			message_display_manager.show_failure_message("只能在书房进入陪伴模式")
+		return
+	
+	# 保存当前游戏状态
+	if has_node("/root/SaveManager"):
+		var save_mgr = get_node("/root/SaveManager")
+		save_mgr.save_game(save_mgr.current_slot)
+	
+	# 切换到陪伴模式场景
+	get_tree().change_scene_to_file("res://scenes/companion_mode.tscn")
 
 func _on_game_selected(game_type: String):
 	print("游戏选择信号接收: ", game_type)

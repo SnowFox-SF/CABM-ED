@@ -219,6 +219,11 @@ custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
 text = "💬 聊天"
 
+[node name="CompanionButton" type="Button" parent="ActionMenu/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+text = "📚 陪伴"
+
 [node name="GameButton" type="Button" parent="ActionMenu/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2

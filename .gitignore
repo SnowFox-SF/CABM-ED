@@ -3,6 +3,7 @@ assets/images/character/*
 config/character_presets/*
 !config/character_presets/default.json
 novel/config
+.kiro/
 *.jks
 CABM-ED/
 *.7z

@@ -2,9 +2,11 @@ extends Panel
 
 signal action_selected(action: String)
 signal game_selected(game_type: String)
+signal companion_mode_selected()
 
 @onready var vbox: VBoxContainer = $MarginContainer/VBoxContainer
 @onready var chat_button: Button = $MarginContainer/VBoxContainer/ChatButton
+@onready var companion_button: Button = $MarginContainer/VBoxContainer/CompanionButton if has_node("MarginContainer/VBoxContainer/CompanionButton") else null
 @onready var game_button: Button = $MarginContainer/VBoxContainer/GameButton
 @onready var game_submenu: Panel = $GameSubmenu
 @onready var gomoku_button: Button = $GameSubmenu/MarginContainer/VBoxContainer/GomokuButton
@@ -25,6 +27,12 @@ func _ready():
 		print("聊天按钮信号已连接")
 	else:
 		print("警告：聊天按钮未找到")
+	
+	if companion_button:
+		companion_button.pressed.connect(_on_companion_button_pressed)
+		print("陪伴模式按钮信号已连接")
+	else:
+		print("警告：陪伴模式按钮未找到")
 		
 	if game_button:
 		game_button.pressed.connect(_on_game_button_pressed)
@@ -83,9 +91,13 @@ func show_menu(at_position: Vector2, scene_id: String = ""):
 	position = at_position
 	current_scene = scene_id
 	
-	# 根据场景显示/隐藏游戏按钮
+	# 根据场景显示/隐藏按钮
 	if game_button:
 		game_button.visible = (scene_id == "livingroom")
+	
+	# 只在书房场景显示陪伴模式按钮
+	if companion_button:
+		companion_button.visible = (scene_id == "studyroom")
 	
 	# 隐藏子菜单
 	if game_submenu:
@@ -118,6 +130,11 @@ func hide_menu():
 
 func _on_chat_button_pressed():
 	action_selected.emit("chat")
+	hide_menu()
+
+func _on_companion_button_pressed():
+	print("陪伴模式按钮被点击")
+	companion_mode_selected.emit()
 	hide_menu()
 
 func _on_game_button_pressed():
