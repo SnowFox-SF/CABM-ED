@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3 uid="uid://companion_mode_scene"]
 
-[ext_resource type="Script" path="res://scripts/companion_mode.gd" id="1"]
-[ext_resource type="Script" path="res://scripts/companion_mode_manager.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/companion/companion_mode.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/companion/companion_mode_manager.gd" id="2"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1"]
 bg_color = Color(0.1, 0.1, 0.15, 1)

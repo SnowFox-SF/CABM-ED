@@ -89,7 +89,8 @@ func _play_study_music():
 func _show_welcome_message():
 	"""显示欢迎提示"""
 	if welcome_label:
-		welcome_label.text = "欢迎进入陪伴模式\n让我陪你一起学习吧"
+		# welcome_label.text = "欢迎进入陪伴模式\n让我陪你一起学习吧"
+		welcome_label.text = "还没做呢，你别急"
 		
 		# 3秒后淡出欢迎消息
 		await get_tree().create_timer(3.0).timeout
