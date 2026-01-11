@@ -469,6 +469,11 @@ func _on_continue_clicked():
 	
 	if typing_manager.has_more_sentences():
 		# 有更多句子，显示下一句
+		# 切换表情（随机选择当前mood的一个图片）
+		var character = get_tree().current_scene.get_node_or_null("Background/Character")
+		if character and character.has_method("switch_expression_randomly"):
+			character.switch_expression_randomly()
+		
 		var next_sentence_hash = typing_manager.show_next_sentence()
 		if next_sentence_hash != "":
 			print("显示句子 hash:%s" % next_sentence_hash.substr(0,8))

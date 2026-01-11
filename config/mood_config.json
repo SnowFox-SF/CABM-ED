@@ -4,7 +4,7 @@
 			"id": 0,
 			"name": "平静",
 			"name_en": "calm",
-			"image": "normal.png",
+			"image": ["normal.png", "normal_2.png", "normal_3.png"],
 			"color": "#FFFFFF",
 			"weight": 5
 		},
@@ -12,7 +12,7 @@
 			"id": 1,
 			"name": "开心",
 			"name_en": "happy",
-			"image": "happy.png",
+			"image": ["happy.png", "happy_2.png", "happy_3.png"],
 			"color": "#4DFF4D",
 			"weight": 1
 		},
@@ -20,7 +20,7 @@
 			"id": 2,
 			"name": "委屈",
 			"name_en": "sad",
-			"image": "sad.png",
+			"image": ["sad.png", "sad_2.png", "sad_3.png"],
 			"color": "#4D9FFF",
 			"weight": 1
 		},
@@ -28,7 +28,7 @@
 			"id": 3,
 			"name": "生气",
 			"name_en": "angry",
-			"image": "angry.png",
+			"image": ["angry.png", "angry_2.png"],
 			"color": "#FF4D4D",
 			"weight": 1
 		},
@@ -36,7 +36,7 @@
 			"id": 4,
 			"name": "惊讶",
 			"name_en": "surprised",
-			"image": "surprised.png",
+			"image": ["surprised.png", "surprised_2.png"],
 			"color": "#FFD74D",
 			"weight": 1
 		},
@@ -44,7 +44,7 @@
 			"id": 5,
 			"name": "害怕",
 			"name_en": "scared",
-			"image": "scared.png",
+			"image": ["scared.png", "scared_2.png"],
 			"color": "#B84DFF",
 			"weight": 1
 		},
@@ -52,7 +52,7 @@
 			"id": 6,
 			"name": "厌恶",
 			"name_en": "disgusted",
-			"image": "disgusted.png",
+			"image": ["disgusted.png", "disgusted_2.png"],
 			"color": "#7FFF4D",
 			"weight": 1
 		},
@@ -60,7 +60,7 @@
 			"id": 7,
 			"name": "疑惑",
 			"name_en": "doubtful",
-			"image": "doubtful.png",
+			"image": ["doubtful.png", "doubtful_2.png"],
 			"color": "#FFA500",
 			"weight": 1
 		},
@@ -68,7 +68,7 @@
 			"id": 8,
 			"name": "害羞",
 			"name_en": "shy",
-			"image": "shy.png",
+			"image": ["shy.png", "shy_2.png", "shy_3.png", "shy_4.png", "shy_5.png"],
 			"color": "#FF69B4",
 			"weight": 1
 		},
@@ -76,7 +76,7 @@
 			"id": 9,
 			"name": "无语",
 			"name_en": "speechless",
-			"image": "speechless.png",
+			"image": ["speechless.png", "speechless_2.png"],
 			"color": "#A9A9A9",
 			"weight": 1
 		},
@@ -84,7 +84,7 @@
 			"id": 10,
 			"name": "担忧",
 			"name_en": "worried",
-			"image": "worried.png",
+			"image": ["worried.png", "worried_2.png"],
 			"color": "#FFB74D",
 			"weight": 1
 		}

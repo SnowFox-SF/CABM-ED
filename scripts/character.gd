@@ -843,8 +843,12 @@ func _compose_chat_texture(base_texture: Texture2D, expression_texture: Texture2
 	
 	return composed_texture
 
-func _load_composed_chat_image_for_mood():
-	"""根据当前心情和服装加载预合成的聊天图片"""
+func _load_composed_chat_image_for_mood(force_random: bool = false):
+	"""根据当前心情和服装加载预合成的聊天图片
+	
+	参数:
+		force_random: 如果为true，强制随机选择新图片（不使用缓存）
+	"""
 	if not has_node("/root/SaveManager"):
 		_load_default_composed_chat_image()
 		return
@@ -853,9 +857,17 @@ func _load_composed_chat_image_for_mood():
 	var mood_name_en = save_mgr.get_mood()
 	var costume_id = save_mgr.get_costume_id()
 	
-	# 检查缓存
-	var cache_key = "%s_%s" % [costume_id, mood_name_en]
-	if chat_texture_cache.has(cache_key):
+	# 获取表情图片（随机选择）
+	var image_filename = _get_mood_image_filename(mood_name_en)
+	if image_filename.is_empty():
+		_load_default_composed_chat_image()
+		return
+	
+	# 缓存键包含图片文件名，支持同一mood的多个图片变体
+	var cache_key = "%s_%s_%s" % [costume_id, mood_name_en, image_filename]
+	
+	# 如果不需要强制随机，检查缓存
+	if not force_random and chat_texture_cache.has(cache_key):
 		texture_normal = chat_texture_cache[cache_key]
 		custom_minimum_size = texture_normal.get_size()
 		size = texture_normal.get_size()
@@ -875,14 +887,11 @@ func _load_composed_chat_image_for_mood():
 		_load_default_composed_chat_image()
 		return
 	
-	# 获取表情图片
-	var image_filename = _get_mood_image_filename(mood_name_en)
+	# 加载表情图片
 	var expression_texture = null
-	
-	if not image_filename.is_empty():
-		var expression_image_path = "res://assets/images/moods/%s" % image_filename
-		if ResourceLoader.exists(expression_image_path):
-			expression_texture = load(expression_image_path) as Texture2D
+	var expression_image_path = "res://assets/images/moods/%s" % image_filename
+	if ResourceLoader.exists(expression_image_path):
+		expression_texture = load(expression_image_path) as Texture2D
 	
 	# 预合成纹理
 	var composed_texture = _compose_chat_texture(base_texture, expression_texture)
@@ -944,21 +953,19 @@ func _on_mood_changed(fields: Dictionary):
 	if mood_name_en.is_empty():
 		return
 	
-	# 获取当前服装ID
-	var costume_id = _get_costume_id()
-	var cache_key = "%s_%s" % [costume_id, mood_name_en]
-	
-	# 检查缓存
-	if chat_texture_cache.has(cache_key):
-		texture_normal = chat_texture_cache[cache_key]
-		print("切换到缓存的表情图片: ", cache_key)
+	# 切换到新心情时，随机选择表情图片
+	_load_composed_chat_image_for_mood(true)
+
+func switch_expression_randomly():
+	"""随机切换当前心情的表情图片（用于点击进入下一句时）"""
+	if not is_chatting:
 		return
 	
-	# 如果不在缓存中，重新合成
-	_load_composed_chat_image_for_mood()
+	# 强制随机选择新图片
+	_load_composed_chat_image_for_mood(true)
 
 func _get_mood_image_filename(mood_name_en: String) -> String:
-	"""根据心情英文名获取图片文件名"""
+	"""根据心情英文名从数组中随机获取图片文件名"""
 	var mood_config_path = "res://config/mood_config.json"
 	if not FileAccess.file_exists(mood_config_path):
 		return ""
@@ -977,7 +984,13 @@ func _get_mood_image_filename(mood_name_en: String) -> String:
 	
 	for mood in mood_config.moods:
 		if mood.name_en == mood_name_en:
-			return mood.image
+			# image字段现在是数组，随机选择其中一个
+			if mood.image is Array and mood.image.size() > 0:
+				var random_index = randi() % mood.image.size()
+				return mood.image[random_index]
+			# 兼容旧格式（字符串）
+			elif mood.image is String:
+				return mood.image
 	
 	return ""
 
