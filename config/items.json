@@ -61,7 +61,7 @@
     "5.8mm_ammo": {
       "name": "5.8mm子弹",
       "type": "弹药",
-      "description": "Ammunition for 5.8mm firearms",
+      "description": "5.8×21mm小口径步枪弹",
       "icon": "5.8mm.png",
       "weight": 0.02,
       "max_stack": 64,
@@ -70,7 +70,7 @@
     ".45_ammo": {
       "name": ".45子弹",
       "type": "弹药",
-      "description": "Ammunition for .45 firearms",
+      "description": ".45 ACP全威力手枪弹",
       "icon": ".45.png",
       "weight": 0.03,
       "max_stack": 64,
@@ -79,7 +79,7 @@
     "9mm_ammo": {
       "name": "9mm子弹",
       "type": "弹药",
-      "description": "Ammunition for 9mm firearms",
+      "description": "9×39mm亚音速步枪弹",
       "icon": "9mm.png",
       "weight": 0.02,
       "max_stack": 64,
