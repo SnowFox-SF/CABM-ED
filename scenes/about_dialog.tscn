@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://about_dialog_001"]
+[gd_scene load_steps=2 format=3 uid="uid://dc3qgcnpahfmn"]
 
-[ext_resource type="Script" path="res://scripts/about_dialog.gd" id="1_about"]
+[ext_resource type="Script" uid="uid://c4w5pc0y2foga" path="res://scripts/about_dialog.gd" id="1_about"]
 
 [node name="AboutDialog" type="Panel"]
 anchors_preset = 8
@@ -32,24 +32,15 @@ theme_override_constants/margin_bottom = 20
 layout_mode = 2
 theme_override_constants/separation = 15
 
-[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer"]
-layout_mode = 2
-text = "关于"
-horizontal_alignment = 1
-theme_override_font_sizes/font_size = 24
-
-[node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer"]
-layout_mode = 2
-
 [node name="GameNameLabel" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 30
 text = "CABM-ED"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 20
 
 [node name="VersionLabel" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "版本: v2-0111-3"
+text = "版本: v2-0111-4"
 horizontal_alignment = 1
 
 [node name="HSeparator2" type="HSeparator" parent="MarginContainer/VBoxContainer"]
@@ -61,8 +52,13 @@ text = "GitHub:"
 
 [node name="GitHubLink" type="LinkButton" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "SnowFox-SF/CABM-ED"
+text = "CABM-ED仓库"
 uri = "https://github.com/SnowFox-SF/CABM-ED"
+
+[node name="GitHubLink2" type="LinkButton" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "CABM官网"
+uri = "https://SnowFox-SF.github.io/CABM-Website"
 
 [node name="HSeparator3" type="HSeparator" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -78,7 +74,7 @@ uri = "https://qm.qq.com/q/BrrfZDi5sA"
 
 [node name="QQLink2" type="LinkButton" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "二群：813734786"
+text = "二群（满）：813734786"
 uri = "https://qm.qq.com/q/pqgOnzn8Gs"
 
 [node name="HSeparator4" type="HSeparator" parent="MarginContainer/VBoxContainer"]
