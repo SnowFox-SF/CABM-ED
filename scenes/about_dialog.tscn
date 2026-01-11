@@ -40,7 +40,7 @@ horizontal_alignment = 1
 
 [node name="VersionLabel" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "版本: v2-0111-5"
+text = "版本: v2-0111-6"
 horizontal_alignment = 1
 
 [node name="HSeparator2" type="HSeparator" parent="MarginContainer/VBoxContainer"]

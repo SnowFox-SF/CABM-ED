@@ -61,7 +61,7 @@
     "5.8mm_ammo": {
       "name": "5.8mm子弹",
       "type": "弹药",
-      "description": "5.8×21mm小口径步枪弹",
+      "description": "5.8×42mm小口径步枪弹",
       "icon": "5.8mm.png",
       "weight": 0.02,
       "max_stack": 64,
