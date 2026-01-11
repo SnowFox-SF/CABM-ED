@@ -155,7 +155,7 @@ func start_recording():
 	recording_started.emit()
 	print("🎙️ 录音进行中...")
 
-func _process(delta: float):
+func _process(_delta: float):
 	pass
 
 func stop_recording():
@@ -287,9 +287,9 @@ func _stop_mic_animation():
 		tween.kill()
 		mic_button.self_modulate = Color.WHITE
 
-func _update_mic_button_state(recording: bool):
+func _update_mic_button_state(is_now_recording: bool):
 	if mic_button:
-		if recording:
+		if is_now_recording:
 			if stop_icon:
 				mic_button.icon = stop_icon
 			else:

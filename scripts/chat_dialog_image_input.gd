@@ -156,7 +156,7 @@ func _copy_content_uri_immediately(uri: String) -> String:
 
 # 异步处理普通路径（file:// 或绝对路径）
 func _process_selected_image_async(path: String):
-	var final_path = await _resolve_normal_path(path)
+	var final_path = _resolve_normal_path(path)
 	if final_path.is_empty():
 		clear_selected_image()
 		return

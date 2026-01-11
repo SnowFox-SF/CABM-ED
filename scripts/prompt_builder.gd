@@ -537,7 +537,7 @@ func build_system_prompt_with_long_term_memory(trigger_mode: String, user_input:
 	
 	# 检索长期记忆（短期/长期摘要）和知识图谱
 	var long_term_memory = await _retrieve_long_term_memory(user_input)
-	var knowledge_memory = await _retrieve_knowledge_memory(user_input)
+	var knowledge_memory = _retrieve_knowledge_memory(user_input)
 
 	# 替换占位符
 	print("替换前占位符存在: long_term=%s, knowledge=%s" % [str(base_prompt.contains("{long_term_memory}")), str(base_prompt.contains("{knowledge_memory}"))])
@@ -599,7 +599,7 @@ func _retrieve_knowledge_memory(query: String) -> String:
 
 	# 提取关键词（debug 会在 keyword_extractor 中打印 tokens/keywords）
 	var ke = preload("res://scripts/keyword_extractor.gd").new()
-	var keywords = await ke.extract_keywords(query, config.get("knowledge_memory", {}).get("query", {}).get("top_k", 6))
+	var keywords = ke.extract_keywords(query, config.get("knowledge_memory", {}).get("query", {}).get("top_k", 6))
 	print("[PromptBuilder] extracted keywords:", keywords)
 
 	if keywords.is_empty():

@@ -173,9 +173,9 @@ func _on_stt_request_completed(result: int, response_code: int, _headers: Packed
 		return
 
 	var text = body.get_string_from_utf8()
+	var json = JSON.new()
 	if response_code != 200:
 		# 尝试解析错误详情
-		var json = JSON.new()
 		if json.parse(text) == OK:
 			var data = json.data
 			var err_msg = data.get("error", {}).get("message", text)
@@ -185,7 +185,6 @@ func _on_stt_request_completed(result: int, response_code: int, _headers: Packed
 		return
 
 	# 解析返回的文本
-	var json = JSON.new()
 	if json.parse(text) == OK:
 		var data = json.data
 		var transcribed = ""

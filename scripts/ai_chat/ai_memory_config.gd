@@ -62,12 +62,12 @@ func _on_semantic_search_toggled(enabled: bool):
 	# 自动保存配置
 	_auto_save_config()
 
-func _on_rerank_toggled(enabled: bool):
+func _on_rerank_toggled(_enabled: bool):
 	"""重排勾选框状态改变"""
 	# 重排没有子节点，不需要特殊处理
 	_auto_save_config()
 
-func _on_pre_recall_reasoning_toggled(enabled: bool):
+func _on_pre_recall_reasoning_toggled(_enabled: bool):
 	"""召回前推理勾选框状态改变"""
 	# 召回前推理没有子节点，不需要特殊处理
 	_auto_save_config()
@@ -86,12 +86,12 @@ func _on_save_kg_toggled(enabled: bool):
 	# 自动保存配置
 	_auto_save_config()
 
-func _on_kg_search_toggled(enabled: bool):
+func _on_kg_search_toggled(_enabled: bool):
 	"""图谱检索勾选框状态改变"""
 	# 图谱检索没有子节点，不需要特殊处理
 	_auto_save_config()
 
-func _on_enable_forgetting_toggled(enabled: bool):
+func _on_enable_forgetting_toggled(_enabled: bool):
 	"""启用知识遗忘勾选框状态改变"""
 	# 知识遗忘没有子节点，不需要特殊处理
 	_auto_save_config()

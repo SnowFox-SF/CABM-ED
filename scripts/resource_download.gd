@@ -192,7 +192,7 @@ func _on_import_canceled():
 func _on_import_file_selected(path: String):
 	status_label.text = "选择文件: " + path.get_file() + "，检查版本..."
 	# 先检查压缩包版本
-	var version_check_result = await _check_zip_version(path)
+	var version_check_result = 	_check_zip_version(path)
 	if version_check_result:
 		status_label.text = "版本检查通过，开始解压..."
 		_extract_zip_and_finalize(path)

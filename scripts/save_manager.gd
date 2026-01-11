@@ -62,20 +62,20 @@ func _initialize_after_resources_ready():
 
 func is_resources_ready() -> bool:
 	return true #已经弃用资源分离，不检查资源
-	var dir = DirAccess.open("user://")
-	if dir == null:
-		return false
-	if not dir.dir_exists("resources"):
-		return false
-	var version_path = "user://resources/version.txt"
-	if not FileAccess.file_exists(version_path):
-		return false
-	var f = FileAccess.open(version_path, FileAccess.READ)
-	if f == null:
-		return false
-	var content = f.get_as_text().strip_edges()
-	f.close()
-	return content == REQUIRED_RES_VERSION
+	# var dir = DirAccess.open("user://")
+	# if dir == null:
+	# 	return false
+	# if not dir.dir_exists("resources"):
+	# 	return false
+	# var version_path = "user://resources/version.txt"
+	# if not FileAccess.file_exists(version_path):
+	# 	return false
+	# var f = FileAccess.open(version_path, FileAccess.READ)
+	# if f == null:
+	# 	return false
+	# var content = f.get_as_text().strip_edges()
+	# f.close()
+	# return content == REQUIRED_RES_VERSION
 
 func get_required_resource_version() -> String:
 	return REQUIRED_RES_VERSION

@@ -425,13 +425,13 @@ func _show_planted_options(idx: int):
 	var vb = VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 6)
 	panel.add_child(vb)
-	var name = str(crop.get("name", crop.get("id", "")))
+	var crop_name = str(crop.get("name", crop.get("id", "")))
 	var secs_total = int(crop.get("growth_time_seconds", 0))
 	var planted = int(data.get("planted_at_unix", 0))
 	var now = Time.get_unix_time_from_system()
 	var remain = max(0, secs_total - (now - planted))
 	var name_lbl = Label.new()
-	name_lbl.text = name
+	name_lbl.text = crop_name
 	vb.add_child(name_lbl)
 	var remain_lbl = Label.new()
 	var mature = _is_mature(crop, planted)
